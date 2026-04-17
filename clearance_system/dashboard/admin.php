@@ -10,6 +10,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $courseFilter = isset($_GET['course']) ? trim($_GET['course']) : '';
 $viewRole = isset($_GET['view']) ? trim($_GET['view']) : 'students';
+$current_page = basename($_SERVER['PHP_SELF']);
 
 $sql = "SELECT * FROM users WHERE 1=1";
 $params = [];
@@ -53,6 +54,24 @@ $totalStudents = $totalStudentsQuery->fetch_assoc()['total'];
 
 $totalTeachersQuery = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='teacher'");
 $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
+
+$adminName = isset($_SESSION['name']) && !empty($_SESSION['name']) ? $_SESSION['name'] : 'Administrator';
+
+/* ADMIN PHOTO */
+$default_admin_photo = "../assets/southern.png";
+$admin_photo = $default_admin_photo;
+$admin_id = isset($_SESSION['user_id']) ? intval($_SESSION['user_id']) : 0;
+
+if ($admin_id > 0) {
+    $admin_stmt = $conn->prepare("SELECT profile_photo FROM admin WHERE id = ?");
+    $admin_stmt->bind_param("i", $admin_id);
+    $admin_stmt->execute();
+    $admin_data = $admin_stmt->get_result()->fetch_assoc();
+
+    if ($admin_data && !empty($admin_data['profile_photo']) && file_exists("../assets/uploads/admin/" . $admin_data['profile_photo'])) {
+        $admin_photo = "../assets/uploads/admin/" . $admin_data['profile_photo'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,8 +89,12 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
         }
 
         body {
-            background: #f4f7f8;
+            background:
+                radial-gradient(circle at top left, rgba(18, 201, 107, 0.08), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(3, 59, 70, 0.10), transparent 30%),
+                #f4f7f8;
             color: #1b1b1b;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         .admin-wrapper {
@@ -80,82 +103,229 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
         }
 
         .sidebar {
-            width: 270px;
-            background: linear-gradient(180deg, #033b46, #022d35);
-            color: #fff;
-            padding: 26px 18px;
-            position: sticky;
+            position: fixed;
             top: 0;
+            left: 0;
+            width: 235px;
             height: 100vh;
-            box-shadow: 4px 0 18px rgba(0,0,0,0.12);
+            background: linear-gradient(180deg, #063845 0%, #032f39 55%, #022933 100%);
+            color: #fff;
+            padding: 18px 14px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 10px 0 28px rgba(0,0,0,0.18);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid rgba(255,255,255,0.06);
         }
 
-        .profile-box {
-            text-align: center;
-            padding: 14px 10px 28px;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            margin-bottom: 24px;
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
         }
 
-        .profile-icon {
-            width: 88px;
-            height: 88px;
-            margin: 0 auto 14px;
-            border-radius: 50%;
-            background: #ffffff;
-            color: #033b46;
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.18);
+            border-radius: 10px;
+        }
+
+        .sidebar-top {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .brand-mini {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            gap: 10px;
+            padding: 6px 8px 2px;
         }
 
-        .profile-box h3 {
-            font-size: 34px;
-            margin-bottom: 4px;
+        .brand-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #b8e986, #8fbc67);
+            box-shadow: 0 0 14px rgba(184,233,134,0.45);
+            flex-shrink: 0;
+        }
+
+        .brand-text {
+            font-size: 12px;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            color: #c7e1e6;
             font-weight: 800;
         }
 
+        .profile-box {
+            position: relative;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 24px;
+            padding: 20px 14px 18px;
+            text-align: center;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+            overflow: hidden;
+        }
+
+        .profile-box::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            background: linear-gradient(135deg, rgba(143,188,103,0.35), rgba(118,179,222,0.22));
+        }
+
+        .profile-icon-wrap {
+            position: relative;
+            width: 98px;
+            height: 98px;
+            margin: 8px auto 12px;
+            padding: 4px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #d0f0a9, #8fbc67);
+            box-shadow: 0 10px 18px rgba(0,0,0,0.18);
+            z-index: 2;
+            overflow: hidden;
+        }
+
+        .profile-icon {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            border: 3px solid #fff;
+            background: #ffffff;
+        }
+
+        .profile-box h3 {
+            position: relative;
+            font-size: 26px;
+            font-weight: 800;
+            margin-bottom: 6px;
+            line-height: 1.1;
+            z-index: 2;
+            letter-spacing: 0.5px;
+        }
+
         .profile-box p {
-            font-size: 14px;
-            opacity: 0.9;
+            position: relative;
+            font-size: 13px;
+            color: #d9eef2;
+            margin-bottom: 10px;
+            word-break: break-word;
+            line-height: 1.45;
+            z-index: 2;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 9px 15px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #10c96b, #2de07f);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .5px;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 8px 18px rgba(16, 201, 107, 0.25);
+        }
+
+        .menu-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #b8d7dd;
+            font-weight: 800;
+            margin: 2px 6px 0;
+        }
+
+        .nav-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
 
         .side-btn,
         .dropdown-btn {
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
             width: 100%;
             text-align: center;
             text-decoration: none;
-            background: #fff;
-            color: #0e2b30;
-            padding: 15px 14px;
-            border-radius: 999px;
-            font-weight: 700;
-            margin-bottom: 14px;
-            border: none;
+            background: rgba(255,255,255,0.07);
+            color: #fff;
+            padding: 15px 16px;
+            border-radius: 18px;
+            font-weight: 800;
+            font-size: 15px;
+            transition: all .22s ease;
+            border: 1px solid rgba(255,255,255,0.08);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.10);
+            position: relative;
+            overflow: hidden;
             cursor: pointer;
-            transition: 0.25s ease;
-            font-size: 16px;
+        }
+
+        .side-btn::before,
+        .dropdown-btn::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            background: linear-gradient(180deg, #bfe68f, #8fbc67);
+            transition: width .22s ease;
+            border-radius: 18px;
+        }
+
+        .side-btn span,
+        .dropdown-btn span {
+            position: relative;
+            z-index: 2;
         }
 
         .side-btn:hover,
-        .dropdown-btn:hover,
-        .side-btn.active {
-            background: #12c96b;
-            color: #fff;
-            transform: translateY(-1px);
-            box-shadow: 0 10px 20px rgba(18, 201, 107, 0.25);
+        .dropdown-btn:hover {
+            transform: translateX(6px);
+            background: rgba(255,255,255,0.14);
+        }
+
+        .side-btn:hover::before,
+        .dropdown-btn:hover::before {
+            width: 4px;
+        }
+
+        .side-btn.active,
+        .dropdown-btn.active {
+            background: linear-gradient(135deg, #18c96d, #36df84);
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 8px 18px rgba(16, 201, 107, 0.20);
+        }
+
+        .side-btn.active::before,
+        .dropdown-btn.active::before {
+            width: 5px;
+            background: linear-gradient(180deg, #ffffff, #eaf7ff);
         }
 
         .dropdown {
-            margin-bottom: 14px;
+            margin-bottom: 2px;
         }
 
         .dropdown-content {
             display: none;
-            padding: 8px 8px 0;
+            padding: 6px 8px 0;
         }
 
         .dropdown-content.show {
@@ -165,22 +335,47 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
         .dropdown-content a {
             display: block;
             text-decoration: none;
-            background: rgba(255,255,255,0.12);
+            background: rgba(255,255,255,0.10);
             color: #fff;
             padding: 12px 14px;
-            border-radius: 12px;
+            border-radius: 14px;
             margin-bottom: 10px;
             font-size: 14px;
+            font-weight: 700;
             transition: 0.25s ease;
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
 
         .dropdown-content a:hover {
-            background: #12c96b;
+            background: rgba(18, 201, 107, 0.85);
             color: #fff;
+            transform: translateX(3px);
+        }
+
+        .sidebar-bottom {
+            margin-top: 18px;
+        }
+
+        .logout-btn {
+            background: rgba(255,255,255,0.08) !important;
+        }
+
+        .logout-btn:hover {
+            background: #d94c4c !important;
+            color: #fff !important;
+            transform: translateX(6px);
+        }
+
+        .logout-btn:hover::before {
+            width: 4px;
+            background: #fff;
         }
 
         .main-content {
             flex: 1;
+            margin-left: 235px;
             min-width: 0;
         }
 
@@ -192,6 +387,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             font-size: 25px;
             font-weight: 900;
             letter-spacing: 0.5px;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         .sub-header {
@@ -202,6 +398,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             font-size: 21px;
             font-weight: 900;
             letter-spacing: 0.4px;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         .content-area {
@@ -223,6 +420,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             display: flex;
             gap: 12px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .search-form input[type="text"] {
@@ -236,6 +434,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             outline: none;
             transition: 0.25s ease;
             background: #fff;
+            color: #1b1b1b;
         }
 
         .search-form input[type="text"]:focus {
@@ -243,21 +442,31 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.12);
         }
 
-        .search-form button {
+        .search-form button,
+        .darkmode-toggle {
             height: 54px;
             padding: 0 24px;
             border: none;
             border-radius: 16px;
-            background: linear-gradient(135deg, #0fb761, #0a944d);
             color: #fff;
             font-weight: 800;
             cursor: pointer;
             transition: 0.25s ease;
         }
 
-        .search-form button:hover {
+        .search-form button {
+            background: linear-gradient(135deg, #0fb761, #0a944d);
+        }
+
+        .darkmode-toggle {
+            background: #1f2937;
+            color: #fff;
+        }
+
+        .search-form button:hover,
+        .darkmode-toggle:hover {
             transform: translateY(-1px);
-            box-shadow: 0 10px 18px rgba(10, 148, 77, 0.22);
+            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
         }
 
         .totals-box {
@@ -270,6 +479,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             box-shadow: 0 8px 20px rgba(0,0,0,0.06);
             font-weight: 800;
             color: #163037;
+            transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
         }
 
         .count {
@@ -283,6 +493,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             font-weight: 900;
             color: #0a944d;
             border: 2px solid #d8ebe0;
+            transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
         }
 
         .table-wrap {
@@ -292,12 +503,14 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             border-radius: 22px;
             box-shadow: 0 12px 30px rgba(0,0,0,0.07);
             padding: 14px;
+            transition: background 0.25s ease, box-shadow 0.25s ease;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             min-width: 980px;
+            background: #fff;
         }
 
         thead th {
@@ -308,6 +521,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             padding: 16px 12px;
             text-align: center;
             border-bottom: 2px solid #d8e3dd;
+            transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
         }
 
         tbody td {
@@ -316,9 +530,20 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             border-bottom: 1px solid #e8eef0;
             font-size: 15px;
             vertical-align: middle;
+            color: #1b1b1b;
+            background: #fff;
+            transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+        }
+
+        tbody tr {
+            background: #fff;
         }
 
         tbody tr:hover {
+            background: #f8fcf9;
+        }
+
+        tbody tr:hover td {
             background: #f8fcf9;
         }
 
@@ -349,6 +574,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             color: #374047;
             font-size: 12px;
             font-weight: 800;
+            transition: background 0.25s ease, color 0.25s ease;
         }
 
         .password-mask {
@@ -402,6 +628,114 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             padding: 26px 10px;
         }
 
+        /* DARK MODE - PAGE DARK, TABLE STAYS WHITE */
+        body.dark-mode {
+            background: #0f172a;
+            color: #e5e7eb;
+        }
+
+        body.dark-mode .top-header {
+            background: #6f9f4f;
+            color: #f8fafc;
+        }
+
+        body.dark-mode .sub-header {
+            background: #022c3a;
+            color: #6fffc0;
+        }
+
+        body.dark-mode .totals-box {
+            background: #111827;
+            color: #e5e7eb;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+        }
+
+        body.dark-mode .count {
+            background: #1f2937;
+            color: #6ee7b7;
+            border-color: #334155;
+        }
+
+        body.dark-mode .search-form input[type="text"] {
+            background: #111827;
+            color: #f8fafc;
+            border-color: #334155;
+        }
+
+        body.dark-mode .search-form input[type="text"]::placeholder {
+            color: #94a3b8;
+        }
+
+        body.dark-mode .darkmode-toggle {
+            background: #6f9f4f;
+            color: #f8fafc;
+        }
+
+        body.dark-mode .table-wrap {
+            background: #ffffff !important;
+            color: #1b1b1b !important;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+        }
+
+        body.dark-mode table {
+            background: #ffffff !important;
+        }
+
+        body.dark-mode thead th {
+            background: linear-gradient(135deg, #eaf4eb, #dfeee2) !important;
+            color: #12353b !important;
+            border-bottom-color: #d8e3dd !important;
+        }
+
+        body.dark-mode tbody tr {
+            background: #ffffff !important;
+        }
+
+        body.dark-mode tbody td {
+            color: #1b1b1b !important;
+            border-bottom: 1px solid #e8eef0 !important;
+            background: #ffffff !important;
+        }
+
+        body.dark-mode tbody tr:hover {
+            background: #f8fcf9 !important;
+        }
+
+        body.dark-mode tbody tr:hover td {
+            background: #f8fcf9 !important;
+        }
+
+        body.dark-mode .course-badge {
+            background: #f1f3f5 !important;
+            color: #374047 !important;
+        }
+
+        body.dark-mode .role-student {
+            background: #e6f8ee !important;
+            color: #0a944d !important;
+        }
+
+        body.dark-mode .role-teacher {
+            background: #e7f1ff !important;
+            color: #1864c7 !important;
+        }
+
+        body.dark-mode .password-mask,
+        body.dark-mode .empty-row {
+            color: #6b7479 !important;
+        }
+
+        body.dark-mode .dropdown-content a {
+            background: rgba(255,255,255,0.08);
+            color: #f8fafc;
+            border-color: rgba(255,255,255,0.08);
+        }
+
+        body.dark-mode .dropdown-content a:hover {
+            background: rgba(18, 201, 107, 0.85);
+            color: #fff;
+        }
+
         @media (max-width: 900px) {
             .sidebar {
                 width: 220px;
@@ -410,6 +744,10 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
 
             .profile-box h3 {
                 font-size: 28px;
+            }
+
+            .main-content {
+                margin-left: 220px;
             }
 
             .top-header {
@@ -434,6 +772,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
 
             .main-content {
                 width: 100%;
+                margin-left: 0;
             }
 
             .search-form {
@@ -448,6 +787,11 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
             .totals-box {
                 justify-content: space-between;
             }
+
+            .search-form button,
+            .darkmode-toggle {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -455,31 +799,65 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
 
 <div class="admin-wrapper">
     <div class="sidebar">
-        <div class="profile-box">
-            <div class="profile-icon">👤</div>
-            <h3>ADMIN</h3>
-            <p><?php echo isset($_SESSION['name']) ? $_SESSION['name'] : 'Administrator'; ?></p>
-        </div>
+        <div class="sidebar-top">
+            <div class="brand-mini">
+                <span class="brand-dot"></span>
+                <span class="brand-text">Admin Panel</span>
+            </div>
 
-        <div class="dropdown">
-            <button type="button" class="dropdown-btn" onclick="toggleDropdown()">
-                DASHBOARD ⬇
-            </button>
+            <div class="profile-box">
+                <div class="profile-icon-wrap">
+                    <img src="<?php echo $admin_photo; ?>" alt="Admin Profile" class="profile-icon" onerror="this.src='../assets/southern.png';">
+                </div>
+                <h3>ADMIN</h3>
+                <p><?php echo htmlspecialchars($adminName); ?></p>
+                <div class="admin-badge">ADMIN PANEL</div>
+            </div>
 
-            <div id="dropdownContent" class="dropdown-content">
-                <a href="admin.php?view=students&course=BSIT%201">BSIT 1</a>
-                <a href="admin.php?view=students&course=BSIT%202">BSIT 2</a>
-                <a href="admin.php?view=students&course=BSIT%203">BSIT 3</a>
-                <a href="admin.php?view=students&course=BSIT%204">BSIT 4</a>
-                <a href="admin.php?view=students">All Students</a>
+            <div class="menu-label">Navigation</div>
+
+            <div class="dropdown">
+                <button
+                    type="button"
+                    class="dropdown-btn <?php echo ($viewRole === 'students' && !empty($courseFilter)) ? 'active' : ''; ?>"
+                    onclick="toggleDropdown()"
+                >
+                    <span>DASHBOARD ⬇</span>
+                </button>
+
+                <div id="dropdownContent" class="dropdown-content <?php echo (!empty($courseFilter) && $viewRole === 'students') ? 'show' : ''; ?>">
+                    <a href="admin.php?view=students&course=BSIT%201">BSIT 1</a>
+                    <a href="admin.php?view=students&course=BSIT%202">BSIT 2</a>
+                    <a href="admin.php?view=students&course=BSIT%203">BSIT 3</a>
+                    <a href="admin.php?view=students&course=BSIT%204">BSIT 4</a>
+                    <a href="admin.php?view=students">All Students</a>
+                </div>
+            </div>
+
+            <div class="nav-group">
+                <a class="side-btn <?php echo ($viewRole === 'teachers') ? 'active' : ''; ?>" href="admin.php?view=teachers">
+                    <span>List of Teacher</span>
+                </a>
+
+                <a class="side-btn <?php echo ($viewRole === 'students' && empty($courseFilter)) ? 'active' : ''; ?>" href="admin.php?view=students">
+                    <span>List of Students</span>
+                </a>
+
+                <a class="side-btn <?php echo ($current_page === 'admin_teacher_album.php') ? 'active' : ''; ?>" href="admin_teacher_album.php">
+                    <span>Teacher Album</span>
+                </a>
+
+                <a class="side-btn <?php echo ($current_page === 'admin_change_password.php') ? 'active' : ''; ?>" href="admin_change_password.php">
+                    <span>Change Password</span>
+                </a>
             </div>
         </div>
 
-        <a class="side-btn <?php echo ($viewRole === 'teachers') ? 'active' : ''; ?>" href="admin.php?view=teachers">List of Teacher</a>
-        <a class="side-btn <?php echo ($viewRole === 'students' && empty($courseFilter)) ? 'active' : ''; ?>" href="admin.php?view=students">List of Students</a>
-        <a class="side-btn" href="#">Reports</a>
-        <a class="side-btn" href="#">Change Password</a>
-        <a class="side-btn" href="../auth/logout.php">Log Out</a>
+        <div class="sidebar-bottom">
+            <a class="side-btn logout-btn" href="../auth/logout.php">
+                <span>Log Out</span>
+            </a>
+        </div>
     </div>
 
     <div class="main-content">
@@ -501,6 +879,7 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
                         value="<?php echo htmlspecialchars($search); ?>"
                     >
                     <button type="submit">Search</button>
+                    <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">🌙 DARK MODE</button>
                 </form>
 
                 <div class="totals-box">
@@ -605,9 +984,44 @@ $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
         const btn = document.querySelector(".dropdown-btn");
         const menu = document.getElementById("dropdownContent");
 
-        if (!btn.contains(e.target) && !menu.contains(e.target)) {
+        if (btn && menu && !btn.contains(e.target) && !menu.contains(e.target)) {
             menu.classList.remove("show");
         }
+    });
+
+    function applyDarkModeState() {
+        const isDark = localStorage.getItem('site_darkmode') === 'enabled';
+        const btn = document.getElementById('darkModeToggle');
+
+        if (isDark) {
+            document.body.classList.add('dark-mode');
+            if (btn) {
+                btn.innerHTML = '☀️ LIGHT MODE';
+            }
+        } else {
+            document.body.classList.remove('dark-mode');
+            if (btn) {
+                btn.innerHTML = '🌙 DARK MODE';
+            }
+        }
+    }
+
+    function toggleDarkMode() {
+        const isDark = document.body.classList.contains('dark-mode');
+
+        if (isDark) {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('site_darkmode', 'disabled');
+        } else {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('site_darkmode', 'enabled');
+        }
+
+        applyDarkModeState();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        applyDarkModeState();
     });
 </script>
 

@@ -68,6 +68,7 @@ while ($row = $result->fetch_assoc()) {
 }
 
 $full_name = $user['lastname'] . ', ' . $user['firstname'];
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -75,6 +76,16 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Result</title>
+
+    <script>
+    (function () {
+        const savedTheme = localStorage.getItem("site_theme");
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark-mode");
+        }
+    })();
+    </script>
+
     <style>
         *{
             margin:0;
@@ -83,9 +94,79 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             font-family:Arial, sans-serif;
         }
 
+        :root{
+            --body-bg:#d9d9d9;
+            --main-bg:#d9d9d9;
+
+            --top-header-bg:#8fbc67;
+            --top-header-text:#000;
+            --sub-header-bg:#003b49;
+            --sub-header-text:#00ff84;
+
+            --card-bg:#ffffff;
+            --card-border:transparent;
+            --card-shadow:0 4px 12px rgba(0,0,0,0.08);
+
+            --title-text:#003b49;
+            --body-text:#333;
+            --muted-text:#666;
+
+            --theme-btn-bg:#ffffff;
+            --theme-btn-text:#003b49;
+            --theme-btn-border:#d8d8d8;
+
+            --table-head-bg:#8fbc67;
+            --table-head-text:#000;
+            --table-cell-text:#222;
+            --table-border:#d8d8d8;
+            --table-even:#fafafa;
+
+            --info-bg:#f8f8f8;
+            --info-border:#d4d4d4;
+            --info-label:#666;
+            --info-value:#111;
+        }
+
+        .dark-mode:root{
+            --body-bg:#082f36;
+            --main-bg:
+                radial-gradient(circle at top right, rgba(34,115,84,0.22), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(25,110,78,0.18), transparent 30%),
+                linear-gradient(135deg, #032b32 0%, #053842 55%, #032f35 100%);
+
+            --top-header-bg:#8fbc67;
+            --top-header-text:#000;
+            --sub-header-bg:rgba(0,59,73,0.78);
+            --sub-header-text:#00ff84;
+
+            --card-bg:rgba(16,70,61,0.35);
+            --card-border:1px solid rgba(255,255,255,0.14);
+            --card-shadow:0 10px 30px rgba(0,0,0,0.16);
+
+            --title-text:#ffffff;
+            --body-text:#e1efea;
+            --muted-text:#d7ebe4;
+
+            --theme-btn-bg:rgba(255,255,255,0.10);
+            --theme-btn-text:#ffffff;
+            --theme-btn-border:rgba(255,255,255,0.16);
+
+            --table-head-bg:#8fbc67;
+            --table-head-text:#000;
+            --table-cell-text:#222;
+            --table-border:#d8d8d8;
+            --table-even:#fafafa;
+
+            --info-bg:rgba(255,255,255,0.06);
+            --info-border:rgba(255,255,255,0.14);
+            --info-label:#d7ebe4;
+            --info-value:#ffffff;
+        }
+
         body{
-            background:#d9d9d9;
+            background:var(--body-bg);
             min-height:100vh;
+            transition:background .25s ease;
         }
 
         .wrapper{
@@ -243,7 +324,7 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
         .sidebar a{
             display:flex;
-            align-items:center;
+            align-items:flex-start;
             gap:12px;
             text-decoration:none;
             background:rgba(255,255,255,0.07);
@@ -303,6 +384,13 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             text-align:center;
             font-size:18px;
             flex-shrink:0;
+            margin-top:1px;
+        }
+
+        .nav-text{
+            display:block;
+            line-height:1.25;
+            word-break:break-word;
         }
 
         .logout-link{
@@ -325,10 +413,13 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             margin-left:235px;
             min-height:100vh;
             width:calc(100% - 235px);
+            background:var(--main-bg);
+            transition:background .25s ease;
         }
 
         .top-header{
-            background:#8fbc67;
+            background:var(--top-header-bg);
+            color:var(--top-header-text);
             text-align:center;
             padding:20px 10px;
             font-size:24px;
@@ -338,35 +429,66 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         }
 
         .sub-header{
-            background:#003b49;
-            color:#00ff84;
+            background:var(--sub-header-bg);
+            color:var(--sub-header-text);
             text-align:center;
             padding:12px 10px;
             font-size:24px;
             font-weight:bold;
             text-transform:uppercase;
+            backdrop-filter:blur(8px);
+            -webkit-backdrop-filter:blur(8px);
         }
 
         .content{
             padding:25px;
         }
 
+        .page-actions{
+            display:flex;
+            justify-content:flex-end;
+            margin-bottom:18px;
+        }
+
+        .theme-toggle-btn{
+            background:var(--theme-btn-bg);
+            color:var(--theme-btn-text);
+            border:1px solid var(--theme-btn-border);
+            border-radius:16px;
+            padding:14px 18px;
+            font-size:15px;
+            font-weight:bold;
+            cursor:pointer;
+            transition:0.25s ease;
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            box-shadow:0 8px 22px rgba(0,0,0,0.12);
+            min-width:170px;
+        }
+
+        .theme-toggle-btn:hover{
+            transform:translateY(-2px);
+        }
+
         .welcome-box{
-            background:#fff;
+            background:var(--card-bg);
+            border:1px solid var(--card-border);
             border-radius:16px;
             padding:22px;
             margin-bottom:20px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.08);
+            box-shadow:var(--card-shadow);
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
         }
 
         .welcome-box h2{
-            color:#003b49;
+            color:var(--title-text);
             margin-bottom:8px;
             font-size:28px;
         }
 
         .welcome-box p{
-            color:#444;
+            color:var(--body-text);
             font-size:15px;
             line-height:1.5;
         }
@@ -379,15 +501,18 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         }
 
         .stat-card{
-            background:#fff;
+            background:var(--card-bg);
+            border:1px solid var(--card-border);
             border-radius:16px;
             padding:20px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.08);
+            box-shadow:var(--card-shadow);
             text-align:center;
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
         }
 
         .stat-card h4{
-            color:#003b49;
+            color:var(--title-text);
             font-size:15px;
             margin-bottom:10px;
         }
@@ -395,14 +520,18 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         .stat-card .number{
             font-size:28px;
             font-weight:bold;
+            color:var(--title-text);
         }
 
         .card{
-            background:#fff;
+            background:var(--card-bg);
+            border:1px solid var(--card-border);
             border-radius:18px;
             padding:20px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.08);
+            box-shadow:var(--card-shadow);
             margin-bottom:20px;
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
         }
 
         .card-header{
@@ -415,13 +544,13 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         }
 
         .card-title h3{
-            color:#003b49;
+            color:var(--title-text);
             font-size:28px;
             margin-bottom:6px;
         }
 
         .card-title p{
-            color:#555;
+            color:var(--muted-text);
             font-size:14px;
         }
 
@@ -490,7 +619,7 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         .inside-doc-header-text h1{
             font-size:20px;
             font-weight:900;
-            color:#111;
+            color:var(--title-text);
             text-transform:uppercase;
             margin:0 0 6px;
             letter-spacing:0.3px;
@@ -498,7 +627,7 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
         .inside-address{
             font-size:12px;
-            color:#333;
+            color:var(--body-text);
             margin:0;
             line-height:1.35;
         }
@@ -524,12 +653,12 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         .clearance-head .main{
             font-size:22px;
             font-weight:bold;
-            color:#003b49;
+            color:var(--title-text);
         }
 
         .clearance-head .small{
             font-size:14px;
-            color:#333;
+            color:var(--body-text);
         }
 
         .info-grid{
@@ -540,9 +669,9 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         }
 
         .info-box{
-            border:1px solid #d4d4d4;
+            border:1px solid var(--info-border);
             border-radius:12px;
-            background:#f8f8f8;
+            background:var(--info-bg);
             padding:14px;
             text-align:center;
         }
@@ -550,14 +679,14 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         .info-box label{
             display:block;
             font-size:13px;
-            color:#666;
+            color:var(--info-label);
             margin-bottom:6px;
             font-weight:bold;
         }
 
         .info-box span{
             font-size:17px;
-            color:#111;
+            color:var(--info-value);
             font-weight:bold;
             word-break:break-word;
         }
@@ -565,7 +694,7 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         .request-text{
             text-align:center;
             font-size:14px;
-            color:#333;
+            color:var(--body-text);
             line-height:1.6;
             margin:8px 0 18px;
             padding:0 10px;
@@ -576,31 +705,33 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             border-radius:14px;
         }
 
-        table{
+        .table-wrap table{
             width:100%;
             border-collapse:collapse;
             overflow:hidden;
             border-radius:14px;
+            background:#ffffff !important;
         }
 
-        table th{
-            background:#8fbc67;
-            color:#000;
+        .table-wrap table th{
+            background:#8fbc67 !important;
+            color:#000 !important;
             padding:14px 10px;
             font-size:14px;
-            border:1px solid #cfcfcf;
+            border:1px solid #cfcfcf !important;
         }
 
-        table td{
+        .table-wrap table td{
             padding:14px 10px;
             text-align:center;
-            border:1px solid #d8d8d8;
-            background:#fff;
+            border:1px solid #d8d8d8 !important;
+            background:#ffffff !important;
+            color:#222 !important;
             font-size:14px;
         }
 
-        table tr:nth-child(even) td{
-            background:#fafafa;
+        .table-wrap table tr:nth-child(even) td{
+            background:#fafafa !important;
         }
 
         .status-badge{
@@ -629,13 +760,13 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
         .comment-text{
             font-weight:600;
-            color:#333;
+            color:#222 !important;
         }
 
         .empty-state{
             text-align:center;
             padding:35px 20px;
-            color:#666;
+            color:#666 !important;
             font-weight:bold;
         }
 
@@ -687,6 +818,14 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
             .print-btn,
             .download-btn{
+                width:100%;
+            }
+
+            .page-actions{
+                justify-content:stretch;
+            }
+
+            .theme-toggle-btn{
                 width:100%;
             }
 
@@ -796,12 +935,14 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
                 margin:0 0 6px;
                 text-transform:uppercase;
                 letter-spacing:0.3px;
+                color:#000 !important;
             }
 
             .print-address{
                 font-size:11px;
                 margin:0;
                 line-height:1.3;
+                color:#000 !important;
             }
 
             .print-double-line{
@@ -933,26 +1074,31 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             <div class="nav-title">Navigation</div>
 
             <div class="nav-group">
-                <a href="student.php">
+                <a href="student.php" class="<?php echo ($current_page == 'student.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">🏠</span>
-                    <span>Dashboard</span>
+                    <span class="nav-text">Dashboard</span>
                 </a>
 
-                <a href="student_result.php" class="active">
+                <a href="student_result.php" class="<?php echo ($current_page == 'student_result.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">📄</span>
-                    <span>Result</span>
+                    <span class="nav-text">Result</span>
                 </a>
 
-                <a href="change_password.php">
+                <a href="change_password.php" class="<?php echo ($current_page == 'change_password.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">🔒</span>
-                    <span>Change Password</span>
+                    <span class="nav-text">Change Password</span>
+                </a>
+
+                <a href="all_teachers.php" class="<?php echo ($current_page == 'all_teachers.php') ? 'active' : ''; ?>">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span class="nav-text">List of All Teacher's in Southern</span>
                 </a>
             </div>
         </div>
 
         <a href="../auth/logout.php" class="logout-link">
             <span class="nav-icon">↩</span>
-            <span>Log Out</span>
+            <span class="nav-text">Log Out</span>
         </a>
     </div>
 
@@ -966,6 +1112,10 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
         </div>
 
         <div class="content">
+
+            <div class="page-actions">
+                <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙 Dark Mode: Off</button>
+            </div>
 
             <div class="welcome-box">
                 <h2>Hi, <?php echo htmlspecialchars($user['firstname']); ?> 👋</h2>
@@ -1222,6 +1372,31 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
+function applyThemeButton() {
+    const btn = document.getElementById("themeToggleBtn");
+    const isDark = document.documentElement.classList.contains("dark-mode");
+
+    if (!btn) return;
+
+    btn.textContent = isDark ? "☀️ Dark Mode: On" : "🌙 Dark Mode: Off";
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle("dark-mode");
+
+    if (document.documentElement.classList.contains("dark-mode")) {
+        localStorage.setItem("site_theme", "dark");
+    } else {
+        localStorage.setItem("site_theme", "light");
+    }
+
+    applyThemeButton();
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    applyThemeButton();
+});
+
 function downloadAsImage() {
     const oldTemp = document.getElementById('tempDownloadWrapper');
     if (oldTemp) {

@@ -1,4 +1,4 @@
-<?php
+\<?php
 session_start();
 include("../config/db.php");
 
@@ -87,6 +87,16 @@ $requests = $stmt->get_result();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
+
+    <script>
+    (function () {
+        const savedTheme = localStorage.getItem("site_theme");
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark-mode");
+        }
+    })();
+    </script>
+
     <style>
         *{
             margin:0;
@@ -95,8 +105,98 @@ $requests = $stmt->get_result();
             font-family:Arial, sans-serif;
         }
 
+        :root{
+            --body-bg:#dfe3e6;
+            --main-bg:#dfe3e6;
+
+            --top-header-bg:#8fbc67;
+            --top-header-text:#000;
+            --sub-header-bg:#003b49;
+            --sub-header-text:#00ff84;
+
+            --box-bg:#fdfdfd;
+            --box-border:transparent;
+            --box-shadow:0 6px 18px rgba(0,0,0,0.08);
+
+            --title-text:#003b49;
+            --body-text:#444;
+            --muted-text:#666;
+
+            --welcome-bg:linear-gradient(135deg, #ffffff, #f4f8f4);
+            --welcome-border:#8fbc67;
+
+            --input-bg:#ffffff;
+            --input-text:#111;
+            --input-border:#cfcfcf;
+            --input-placeholder:#777;
+
+            --primary-btn-bg:#003b49;
+            --primary-btn-text:#fff;
+
+            --message-bg:#e7f5e7;
+            --message-text:#155724;
+            --message-border:#8fbc67;
+
+            --table-head-bg:#8fbc67;
+            --table-head-text:#000;
+            --table-cell-text:#222;
+            --table-border:#d7d7d7;
+            --table-even:#fafafa;
+
+            --theme-btn-bg:#ffffff;
+            --theme-btn-text:#003b49;
+            --theme-btn-border:#d8d8d8;
+        }
+
+        .dark-mode:root{
+            --body-bg:#082f36;
+            --main-bg:
+                radial-gradient(circle at top right, rgba(34,115,84,0.22), transparent 28%),
+                radial-gradient(circle at bottom left, rgba(25,110,78,0.18), transparent 30%),
+                linear-gradient(135deg, #032b32 0%, #053842 55%, #032f35 100%);
+
+            --top-header-bg:#8fbc67;
+            --top-header-text:#000;
+            --sub-header-bg:rgba(0,59,73,0.78);
+            --sub-header-text:#00ff84;
+
+            --box-bg:rgba(16,70,61,0.35);
+            --box-border:1px solid rgba(255,255,255,0.14);
+            --box-shadow:0 10px 30px rgba(0,0,0,0.16);
+
+            --title-text:#ffffff;
+            --body-text:#e1efea;
+            --muted-text:#d7ebe4;
+
+            --welcome-bg:rgba(16,70,61,0.38);
+            --welcome-border:#8fbc67;
+
+            --input-bg:rgba(255,255,255,0.08);
+            --input-text:#ffffff;
+            --input-border:rgba(255,255,255,0.16);
+            --input-placeholder:#d5e6df;
+
+            --primary-btn-bg:rgba(5,76,63,0.78);
+            --primary-btn-text:#fff;
+
+            --message-bg:rgba(53,117,74,0.35);
+            --message-text:#eaffef;
+            --message-border:rgba(183,223,190,0.35);
+
+            --table-head-bg:#8fbc67;
+            --table-head-text:#000;
+            --table-cell-text:#222;
+            --table-border:#d7d7d7;
+            --table-even:#fafafa;
+
+            --theme-btn-bg:rgba(255,255,255,0.10);
+            --theme-btn-text:#ffffff;
+            --theme-btn-border:rgba(255,255,255,0.16);
+        }
+
         body{
-            background:#dfe3e6;
+            background:var(--body-bg);
+            transition:background .25s ease;
         }
 
         .wrapper{
@@ -258,7 +358,7 @@ $requests = $stmt->get_result();
 
         .sidebar a{
             display:flex;
-            align-items:center;
+            align-items:flex-start;
             gap:12px;
             text-decoration:none;
             background:rgba(255,255,255,0.07);
@@ -317,6 +417,13 @@ $requests = $stmt->get_result();
             text-align:center;
             font-size:18px;
             flex-shrink:0;
+            margin-top:1px;
+        }
+
+        .nav-text{
+            display:block;
+            line-height:1.25;
+            word-break:break-word;
         }
 
         .sidebar-bottom{
@@ -341,10 +448,14 @@ $requests = $stmt->get_result();
         .main-content{
             flex:1;
             margin-left:235px;
+            min-height:100vh;
+            background:var(--main-bg);
+            transition:background .25s ease;
         }
 
         .top-header{
-            background:#8fbc67;
+            background:var(--top-header-bg);
+            color:var(--top-header-text);
             text-align:center;
             padding:22px 10px;
             font-size:22px;
@@ -354,36 +465,67 @@ $requests = $stmt->get_result();
         }
 
         .sub-header{
-            background:#003b49;
-            color:#00ff84;
+            background:var(--sub-header-bg);
+            color:var(--sub-header-text);
             text-align:center;
             padding:14px 10px;
             font-size:20px;
             font-weight:bold;
             text-transform:uppercase;
             letter-spacing:1px;
+            backdrop-filter:blur(8px);
+            -webkit-backdrop-filter:blur(8px);
         }
 
         .content{
             padding:24px;
         }
 
+        .page-actions{
+            display:flex;
+            justify-content:flex-end;
+            margin-bottom:18px;
+        }
+
+        .theme-toggle-btn{
+            background:var(--theme-btn-bg);
+            color:var(--theme-btn-text);
+            border:1px solid var(--theme-btn-border);
+            border-radius:16px;
+            padding:14px 18px;
+            font-size:15px;
+            font-weight:bold;
+            cursor:pointer;
+            transition:0.25s ease;
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
+            box-shadow:0 8px 22px rgba(0,0,0,0.12);
+            min-width:170px;
+        }
+
+        .theme-toggle-btn:hover{
+            transform:translateY(-2px);
+        }
+
         .box{
-            background:#fdfdfd;
+            background:var(--box-bg);
+            border:1px solid var(--box-border);
             border-radius:18px;
             padding:22px;
             margin-bottom:24px;
-            box-shadow:0 6px 18px rgba(0,0,0,0.08);
+            box-shadow:var(--box-shadow);
+            backdrop-filter:blur(14px);
+            -webkit-backdrop-filter:blur(14px);
         }
 
         .welcome-box{
-            background:linear-gradient(135deg, #ffffff, #f4f8f4);
-            border-left:6px solid #8fbc67;
+            background:var(--welcome-bg);
+            border-left:6px solid var(--welcome-border);
         }
 
         .box h2{
             margin-bottom:15px;
-            color:#003b49;
+            color:var(--title-text);
             font-size:20px;
         }
 
@@ -394,7 +536,7 @@ $requests = $stmt->get_result();
 
         .welcome-box p{
             font-size:15px;
-            color:#444;
+            color:var(--body-text);
             line-height:1.6;
         }
 
@@ -402,10 +544,10 @@ $requests = $stmt->get_result();
             margin-bottom:15px;
             padding:14px 16px;
             border-radius:10px;
-            background:#e7f5e7;
-            color:#155724;
+            background:var(--message-bg);
+            color:var(--message-text);
             font-weight:bold;
-            border-left:5px solid #8fbc67;
+            border-left:5px solid var(--message-border);
         }
 
         .request-form{
@@ -417,11 +559,17 @@ $requests = $stmt->get_result();
 
         .request-form input{
             padding:13px 14px;
-            border:1px solid #cfcfcf;
+            border:1px solid var(--input-border);
             border-radius:10px;
             font-size:14px;
             outline:none;
             transition:.2s ease;
+            background:var(--input-bg);
+            color:var(--input-text);
+        }
+
+        .request-form input::placeholder{
+            color:var(--input-placeholder);
         }
 
         .request-form input:focus{
@@ -432,8 +580,8 @@ $requests = $stmt->get_result();
         .request-form button{
             padding:13px 22px;
             border:none;
-            background:#003b49;
-            color:#fff;
+            background:var(--primary-btn-bg);
+            color:var(--primary-btn-text);
             border-radius:10px;
             font-weight:bold;
             cursor:pointer;
@@ -441,13 +589,13 @@ $requests = $stmt->get_result();
         }
 
         .request-form button:hover{
-            background:#025264;
+            opacity:0.95;
         }
 
         .table-title{
             font-size:24px;
             margin-bottom:18px;
-            color:#003b49;
+            color:var(--title-text);
             font-weight:bold;
         }
 
@@ -456,27 +604,34 @@ $requests = $stmt->get_result();
             overflow-x:auto;
         }
 
-        table{
+        .table-responsive table{
             width:100%;
             border-collapse:collapse;
             min-width:800px;
+            background:#ffffff !important;
         }
 
-        table th, table td{
-            border:1px solid #d7d7d7;
+        .table-responsive table th,
+        .table-responsive table td{
+            border:1px solid #d7d7d7 !important;
             padding:14px 10px;
             text-align:center;
             font-size:14px;
+            color:#222 !important;
         }
 
-        table th{
-            background:#8fbc67;
-            color:#000;
+        .table-responsive table th{
+            background:#8fbc67 !important;
+            color:#000 !important;
             font-size:14px;
         }
 
-        table tr:nth-child(even){
-            background:#fafafa;
+        .table-responsive table td{
+            background:#ffffff !important;
+        }
+
+        .table-responsive table tr:nth-child(even) td{
+            background:#fafafa !important;
         }
 
         .status-requesting{
@@ -500,17 +655,17 @@ $requests = $stmt->get_result();
         }
 
         .result-passed{
-            color:green;
+            color:#0b9d3c !important;
             font-weight:bold;
         }
 
         .result-failed{
-            color:red;
+            color:#d93025 !important;
             font-weight:bold;
         }
 
         .result-incomplete{
-            color:orange;
+            color:#ff9800 !important;
             font-weight:bold;
         }
 
@@ -518,7 +673,7 @@ $requests = $stmt->get_result();
             text-align:center;
             padding:20px;
             font-weight:bold;
-            color:#666;
+            color:#666 !important;
         }
 
         @media (max-width: 1000px){
@@ -540,6 +695,14 @@ $requests = $stmt->get_result();
 
             .request-form{
                 grid-template-columns:1fr;
+            }
+
+            .page-actions{
+                justify-content:stretch;
+            }
+
+            .theme-toggle-btn{
+                width:100%;
             }
 
             .top-header{
@@ -591,17 +754,22 @@ $requests = $stmt->get_result();
             <div class="nav-group">
                 <a href="student.php" class="<?php echo ($current_page == 'student.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">🏠</span>
-                    <span>Dashboard</span>
+                    <span class="nav-text">Dashboard</span>
                 </a>
 
                 <a href="student_result.php" class="<?php echo ($current_page == 'student_result.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">📄</span>
-                    <span>Result</span>
+                    <span class="nav-text">Result</span>
                 </a>
 
                 <a href="change_password.php" class="<?php echo ($current_page == 'change_password.php') ? 'active' : ''; ?>">
                     <span class="nav-icon">🔒</span>
-                    <span>Change Password</span>
+                    <span class="nav-text">Change Password</span>
+                </a>
+
+                <a href="all_teachers.php" class="<?php echo ($current_page == 'all_teachers.php') ? 'active' : ''; ?>">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span class="nav-text">List of All Teacher's in Southern</span>
                 </a>
             </div>
         </div>
@@ -609,7 +777,7 @@ $requests = $stmt->get_result();
         <div class="sidebar-bottom">
             <a href="../auth/logout.php" class="logout-btn">
                 <span class="nav-icon">↩</span>
-                <span>Log Out</span>
+                <span class="nav-text">Log Out</span>
             </a>
         </div>
     </div>
@@ -624,6 +792,10 @@ $requests = $stmt->get_result();
         </div>
 
         <div class="content">
+            <div class="page-actions">
+                <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙 Dark Mode: Off</button>
+            </div>
+
             <div class="box welcome-box">
                 <h2>Hi, <?php echo htmlspecialchars($user['firstname']); ?> 👋</h2>
                 <p>Welcome to your clearance dashboard. Dito mo pwedeng i-request ang subjects at makita ang status ng clearance mo.</p>
@@ -705,6 +877,33 @@ $requests = $stmt->get_result();
         </div>
     </div>
 </div>
+
+<script>
+function applyThemeButton() {
+    const btn = document.getElementById("themeToggleBtn");
+    const isDark = document.documentElement.classList.contains("dark-mode");
+
+    if (!btn) return;
+
+    btn.textContent = isDark ? "☀️ Dark Mode: On" : "🌙 Dark Mode: Off";
+}
+
+function toggleTheme() {
+    document.documentElement.classList.toggle("dark-mode");
+
+    if (document.documentElement.classList.contains("dark-mode")) {
+        localStorage.setItem("site_theme", "dark");
+    } else {
+        localStorage.setItem("site_theme", "light");
+    }
+
+    applyThemeButton();
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    applyThemeButton();
+});
+</script>
 
 </body>
 </html>

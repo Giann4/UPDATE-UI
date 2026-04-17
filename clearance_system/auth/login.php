@@ -283,6 +283,8 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
                 linear-gradient(180deg, rgba(7, 87, 42, 0.78), rgba(4, 54, 26, 0.72)),
                 rgba(0,0,0,0.15);
             z-index: 2;
+            overflow: hidden;
+            isolation: isolate;
         }
 
         .login-header::before {
@@ -293,10 +295,30 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
                 radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 35%),
                 radial-gradient(circle at bottom right, rgba(0,255,140,0.08), transparent 30%);
             pointer-events: none;
+            z-index: 1;
+        }
+
+        /* LOGO SHADOW / WATERMARK */
+        .login-header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url('../assets/logo2.png') no-repeat center center;
+            background-size: 340px;
+            opacity: 0.75;
+            filter: blur(1.2px) drop-shadow(0 0 18px rgba(255,255,255,0.10));
+            pointer-events: none;
+            z-index: 1;
+            transform: scale(1.02);
+        }
+
+        .school-title,
+        .school-subtitle {
+            position: relative;
+            z-index: 2;
         }
 
         .school-title {
-            position: relative;
             font-size: 38px;
             line-height: 1.12;
             font-weight: 900;
@@ -332,7 +354,6 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
         }
 
         .school-subtitle {
-            position: relative;
             font-size: 31px;
             line-height: 1.35;
             color: rgba(255, 255, 255, 0.96);
@@ -499,6 +520,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
                 text-align: center;
             }
 
+            .login-header::after {
+                background-size: 240px;
+                opacity: 0.09;
+            }
+
             .school-title {
                 font-size: 28px;
             }
@@ -515,6 +541,11 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
         }
 
         @media (max-width: 500px) {
+            .login-header::after {
+                background-size: 180px;
+                opacity: 0.08;
+            }
+
             .school-title {
                 font-size: 22px;
             }

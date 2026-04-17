@@ -47,6 +47,39 @@ if (!$class) {
     exit;
 }
 
+/* DELETE CLASS */
+if (isset($_POST['delete_class'])) {
+    $delete_class_id = intval($_POST['delete_class_id']);
+
+    if ($delete_class_id === $class_id) {
+        $conn->begin_transaction();
+
+        try {
+            /* DELETE RELATED REQUESTS FIRST */
+            $delete_requests_stmt = $conn->prepare("DELETE FROM class_requests WHERE class_id = ?");
+            $delete_requests_stmt->bind_param("i", $class_id);
+            $delete_requests_stmt->execute();
+
+            /* DELETE CLASS */
+            $delete_class_stmt = $conn->prepare("DELETE FROM teacher_classes WHERE id = ? AND teacher_id = ?");
+            $delete_class_stmt->bind_param("ii", $class_id, $teacher_id);
+            $delete_class_stmt->execute();
+
+            $conn->commit();
+
+            header("Location: teacher.php?deleted=1");
+            exit;
+        } catch (Exception $e) {
+            $conn->rollback();
+            $message = "Failed to delete class.";
+            $message_type = "error";
+        }
+    } else {
+        $message = "Invalid class deletion request.";
+        $message_type = "error";
+    }
+}
+
 /* SAVE REVIEW */
 if (isset($_POST['save_review'])) {
     $request_id = intval($_POST['request_id']);
@@ -103,8 +136,29 @@ $requests = $request_stmt->get_result();
             font-family:Arial, sans-serif;
         }
 
+        :root{
+            --bg:#d9d9d9;
+            --card:#ffffff;
+            --text:#003b49;
+            --sub:#555;
+            --header:#8fbc67;
+            --subheader:#003b49;
+            --accent:#003b49;
+        }
+
+        .dark-mode:root{
+            --bg:linear-gradient(135deg,#032b32,#053842,#032f35);
+            --card:rgba(16,70,61,0.35);
+            --text:#ffffff;
+            --sub:#d6e9e3;
+            --header:#8fbc67;
+            --subheader:rgba(0,59,73,0.7);
+            --accent:rgba(5,76,63,0.8);
+        }
+
         body{
-            background:#d9d9d9;
+            background:var(--bg);
+            transition:.3s;
         }
 
         .wrapper{
@@ -159,10 +213,11 @@ $requests = $request_stmt->get_result();
 
         .main-content{
             flex:1;
+            background:var(--bg);
         }
 
         .top-header{
-            background:#8fbc67;
+            background:var(--header);
             text-align:center;
             padding:20px 10px;
             font-size:24px;
@@ -171,13 +226,14 @@ $requests = $request_stmt->get_result();
         }
 
         .sub-header{
-            background:#003b49;
+            background:var(--subheader);
             color:#00ff84;
             text-align:center;
             padding:12px 10px;
             font-size:24px;
             font-weight:bold;
             text-transform:uppercase;
+            backdrop-filter:blur(10px);
         }
 
         .content{
@@ -186,20 +242,22 @@ $requests = $request_stmt->get_result();
 
         .info-card,
         .table-card{
-            background:#fff;
+            background:var(--card);
             border-radius:18px;
             padding:22px;
-            box-shadow:0 4px 12px rgba(0,0,0,0.08);
+            box-shadow:0 8px 20px rgba(0,0,0,0.15);
             margin-bottom:20px;
+            backdrop-filter:blur(12px);
+            border:1px solid rgba(255,255,255,0.15);
         }
 
-        .info-card h2{
-            color:#003b49;
-            margin-bottom:8px;
+        .info-card h2,
+        .table-title{
+            color:var(--text);
         }
 
         .info-card p{
-            color:#555;
+            color:var(--sub);
             margin-bottom:6px;
         }
 
@@ -224,7 +282,6 @@ $requests = $request_stmt->get_result();
 
         .table-title{
             font-size:24px;
-            color:#003b49;
             font-weight:bold;
             margin-bottom:16px;
         }
@@ -233,37 +290,46 @@ $requests = $request_stmt->get_result();
             overflow-x:auto;
         }
 
-        table{
+        /* WHITE TABLE KAHIT DARK MODE */
+        .table-wrap table{
             width:100%;
             border-collapse:collapse;
+            background:#ffffff !important;
         }
 
-        th, td{
-            border:1px solid #d8d8d8;
+        .table-wrap th,
+        .table-wrap td{
+            border:1px solid #d8d8d8 !important;
             padding:12px 10px;
             text-align:center;
             font-size:14px;
+            color:#222 !important;
+            background:#ffffff !important;
         }
 
-        th{
-            background:#8fbc67;
-            color:#000;
+        .table-wrap th{
+            background:#8fbc67 !important;
+            color:#000 !important;
         }
 
-        tr:nth-child(even) td{
-            background:#fafafa;
+        .table-wrap tr:nth-child(even) td{
+            background:#fafafa !important;
         }
 
-        select, textarea{
+        /* WHITE FORM SA ACTION COLUMN */
+        .table-wrap select,
+        .table-wrap textarea{
             width:100%;
             border:1px solid #ccc;
             border-radius:8px;
             padding:8px 10px;
             font-size:13px;
             outline:none;
+            background:#ffffff !important;
+            color:#222 !important;
         }
 
-        textarea{
+        .table-wrap textarea{
             resize:vertical;
             min-height:60px;
         }
@@ -280,6 +346,10 @@ $requests = $request_stmt->get_result();
             margin-top:8px;
         }
 
+        .save-btn:hover{
+            opacity:0.9;
+        }
+
         .status-badge{
             display:inline-block;
             padding:6px 12px;
@@ -290,23 +360,47 @@ $requests = $request_stmt->get_result();
 
         .requesting{
             background:#fff3cd;
-            color:#856404;
+            color:#856404 !important;
         }
 
         .reviewed{
             background:#d4edda;
-            color:#155724;
+            color:#155724 !important;
+        }
+
+        .action-buttons{
+            display:flex;
+            gap:10px;
+            flex-wrap:wrap;
+            margin-top:14px;
         }
 
         .back-btn{
             display:inline-block;
-            margin-top:12px;
             text-decoration:none;
             background:#003b49;
+            color:#fff !important;
+            padding:10px 16px;
+            border-radius:10px;
+            font-weight:bold;
+            border:none;
+            cursor:pointer;
+        }
+
+        .delete-class-btn{
+            display:inline-block;
+            text-decoration:none;
+            background:#c0392b;
             color:#fff;
             padding:10px 16px;
             border-radius:10px;
             font-weight:bold;
+            border:none;
+            cursor:pointer;
+        }
+
+        .delete-class-btn:hover{
+            background:#a93226;
         }
     </style>
 </head>
@@ -335,18 +429,26 @@ $requests = $request_stmt->get_result();
 
         <div class="content">
 
-            <div class="info-card">
-                <h2><?php echo htmlspecialchars($class['subject']); ?></h2>
-                <p><strong>Course:</strong> <?php echo htmlspecialchars($class['course']); ?></p>
-                <p><strong>Class Code:</strong> <?php echo htmlspecialchars($class['class_code']); ?></p>
-                <a href="teacher.php" class="back-btn">← Back to Dashboard</a>
-            </div>
-
             <?php if (!empty($message)): ?>
                 <div class="message <?php echo $message_type; ?>">
                     <?php echo htmlspecialchars($message); ?>
                 </div>
             <?php endif; ?>
+
+            <div class="info-card">
+                <h2><?php echo htmlspecialchars($class['subject']); ?></h2>
+                <p><strong>Course:</strong> <?php echo htmlspecialchars($class['course']); ?></p>
+                <p><strong>Class Code:</strong> <?php echo htmlspecialchars($class['class_code']); ?></p>
+
+                <div class="action-buttons">
+                    <a href="teacher.php" class="back-btn">← Back to Dashboard</a>
+
+                    <form method="POST" onsubmit="return confirm('Are you sure you want to delete this class? This will also remove all student requests under this class.');" style="display:inline;">
+                        <input type="hidden" name="delete_class_id" value="<?php echo $class_id; ?>">
+                        <button type="submit" name="delete_class" class="delete-class-btn">Delete Class</button>
+                    </form>
+                </div>
+            </div>
 
             <div class="table-card">
                 <div class="table-title">Student Requests</div>
@@ -393,12 +495,12 @@ $requests = $request_stmt->get_result();
 
                                     <select name="result" required>
                                         <option value="">Select</option>
-                                        <option value="Passed">Passed</option>
-                                        <option value="Failed">Failed</option>
-                                        <option value="Incomplete">Incomplete</option>
+                                        <option value="Passed" <?php echo ($row['result'] === 'Passed') ? 'selected' : ''; ?>>Passed</option>
+                                        <option value="Failed" <?php echo ($row['result'] === 'Failed') ? 'selected' : ''; ?>>Failed</option>
+                                        <option value="Incomplete" <?php echo ($row['result'] === 'Incomplete') ? 'selected' : ''; ?>>Incomplete</option>
                                     </select>
 
-                                    <textarea name="comment" placeholder="Comment" required></textarea>
+                                    <textarea name="comment" placeholder="Comment" required><?php echo htmlspecialchars($row['comment'] ?? ''); ?></textarea>
 
                                     <button type="submit" name="save_review" class="save-btn">Save</button>
                                 </form>
@@ -409,7 +511,7 @@ $requests = $request_stmt->get_result();
                         else:
                         ?>
                         <tr>
-                            <td colspan="10">No student requests found.</td>
+                            <td colspan="10" style="color:#222;background:#ffffff;">No student requests found.</td>
                         </tr>
                         <?php endif; ?>
                     </table>
@@ -419,6 +521,15 @@ $requests = $request_stmt->get_result();
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    const savedTheme = localStorage.getItem("site_theme");
+    if (savedTheme === "dark") {
+        document.documentElement.classList.add("dark-mode");
+    }
+})();
+</script>
 
 </body>
 </html>
