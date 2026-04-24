@@ -172,6 +172,21 @@ body.register-page {
     user-select: none;
 }
 
+.helper-text {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    min-height: 18px;
+}
+
+.helper-error {
+    color: #c62828;
+}
+
+.helper-success {
+    color: #0a8a48;
+}
+
 .submit-btn {
     width: 100%;
     margin-top: 22px;
@@ -201,33 +216,116 @@ body.register-page {
 }
 
 .register-header {
-    padding: 50px;
+    position: relative;
+    padding: 50px 46px;
     color: #fff;
-    background: linear-gradient(135deg,#0a5c2d,#0bb15d);
+    background: linear-gradient(135deg,
+        #0f5132 0%,
+        #0b6b40 28%,
+        #0d8c4e 62%,
+        #10b15d 100%
+    );
     display: flex;
     flex-direction: column;
     justify-content: center;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.22);
+    overflow: hidden;
+}
+
+.register-header::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top right, rgba(255,255,255,0.12), transparent 34%),
+        radial-gradient(circle at bottom left, rgba(255,255,255,0.05), transparent 28%);
+    pointer-events: none;
 }
 
 .school-title {
+    position: relative;
+    z-index: 2;
     font-size: 34px;
     font-weight: 900;
     line-height: 1.15;
     margin-bottom: 15px;
     text-transform: uppercase;
-    text-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    text-shadow: 0 4px 14px rgba(0,0,0,0.35);
 }
 
 .school-subtitle {
+    position: relative;
+    z-index: 2;
     font-size: 26px;
     font-weight: 800;
     margin-bottom: 14px;
+    text-shadow: 0 3px 10px rgba(0,0,0,0.25);
 }
 
 .info-text {
+    position: relative;
+    z-index: 2;
     font-size: 15px;
     line-height: 1.8;
+    color: rgba(255,255,255,0.94);
+    margin-bottom: 24px;
+}
+
+.password-rules-side {
+    position: relative;
+    z-index: 2;
+    background: rgba(255,255,255,0.10);
+    border: 1.5px solid rgba(255,255,255,0.28);
+    border-radius: 18px;
+    padding: 18px 18px 14px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: inset 0 0 14px rgba(255,255,255,0.05);
+}
+
+.password-rules-title {
+    font-size: 14px;
+    font-weight: 900;
+    color: #ffffff;
+    margin-bottom: 12px;
+    letter-spacing: 0.4px;
+}
+
+.password-rules-side ul {
+    list-style: none;
+    padding: 0;
+}
+
+.password-rules-side li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    margin-bottom: 10px;
     color: rgba(255,255,255,0.92);
+    transition: 0.2s ease;
+}
+
+.rule-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.75);
+    background: transparent;
+    flex-shrink: 0;
+    transition: 0.2s ease;
+}
+
+.password-rules-side li.valid {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.password-rules-side li.valid .rule-dot {
+    background: #ffffff;
+    border-color: #ffffff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.45);
 }
 
 .message-box {
@@ -340,6 +438,10 @@ body.register-page {
         padding: 40px 20px 28px;
     }
 
+    .register-header {
+        padding: 35px 24px;
+    }
+
     .school-title {
         font-size: 24px;
     }
@@ -376,7 +478,7 @@ body.register-page {
                 </div>
             <?php endif; ?>
 
-            <form action="process_register.php" method="POST">
+            <form action="process_register.php" method="POST" id="registerForm">
 
                 <div class="grid">
 
@@ -404,6 +506,7 @@ body.register-page {
                         <label for="pass">Password</label>
                         <input type="password" id="pass" name="password" required>
                         <span class="toggle-password" onclick="togglePassword('pass', this)">👁</span>
+                        <div id="passwordStrengthText" class="helper-text"></div>
                     </div>
 
                     <div class="input-group">
@@ -419,6 +522,7 @@ body.register-page {
                         <label for="cpass">Confirm Password</label>
                         <input type="password" id="cpass" name="confirm_password" required>
                         <span class="toggle-password" onclick="togglePassword('cpass', this)">👁</span>
+                        <div id="confirmPasswordText" class="helper-text"></div>
                     </div>
 
                     <div class="input-group" id="courseBox" style="display:none;">
@@ -449,6 +553,16 @@ body.register-page {
             <p class="info-text">
                 Create your account to access a faster, smoother, and more organized academic clearance process for students and teachers.
             </p>
+
+            <div class="password-rules-side">
+                <div class="password-rules-title">🛡 PASSWORD REQUIREMENTS</div>
+                <ul>
+                    <li id="rule-length"><span class="rule-dot"></span>At least 12 characters long</li>
+                    <li id="rule-uppercase"><span class="rule-dot"></span>At least 1 uppercase letter (A-Z)</li>
+                    <li id="rule-number"><span class="rule-dot"></span>At least 1 number (0-9)</li>
+                    <li id="rule-special"><span class="rule-dot"></span>At least 1 special character (!@#$%^&* etc.)</li>
+                </ul>
+            </div>
         </div>
 
     </div>
@@ -490,6 +604,102 @@ function toggleCourse() {
         courseSelect.value = "";
     }
 }
+
+const passwordInput = document.getElementById("pass");
+const confirmPasswordInput = document.getElementById("cpass");
+const passwordStrengthText = document.getElementById("passwordStrengthText");
+const confirmPasswordText = document.getElementById("confirmPasswordText");
+const registerForm = document.getElementById("registerForm");
+
+const ruleLength = document.getElementById("rule-length");
+const ruleUppercase = document.getElementById("rule-uppercase");
+const ruleNumber = document.getElementById("rule-number");
+const ruleSpecial = document.getElementById("rule-special");
+
+function updateRuleState(element, isValid) {
+    if (isValid) {
+        element.classList.add("valid");
+    } else {
+        element.classList.remove("valid");
+    }
+}
+
+function validatePasswordRules() {
+    const password = passwordInput.value;
+
+    const hasLength = password.length >= 12;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSpecial = /[\W_]/.test(password);
+
+    updateRuleState(ruleLength, hasLength);
+    updateRuleState(ruleUppercase, hasUppercase);
+    updateRuleState(ruleNumber, hasNumber);
+    updateRuleState(ruleSpecial, hasSpecial);
+
+    const isStrong = hasLength && hasUppercase && hasNumber && hasSpecial;
+
+    if (password.length === 0) {
+        passwordStrengthText.textContent = "";
+        passwordStrengthText.className = "helper-text";
+    } else if (isStrong) {
+        passwordStrengthText.textContent = "Strong password ✔";
+        passwordStrengthText.className = "helper-text helper-success";
+    } else {
+        passwordStrengthText.textContent = "Password does not meet the required security rules.";
+        passwordStrengthText.className = "helper-text helper-error";
+    }
+
+    return isStrong;
+}
+
+function validateConfirmPassword() {
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    if (confirmPassword.length === 0) {
+        confirmPasswordText.textContent = "";
+        confirmPasswordText.className = "helper-text";
+        return false;
+    }
+
+    if (password === confirmPassword) {
+        confirmPasswordText.textContent = "Password matched ✔";
+        confirmPasswordText.className = "helper-text helper-success";
+        return true;
+    } else {
+        confirmPasswordText.textContent = "Password does not match.";
+        confirmPasswordText.className = "helper-text helper-error";
+        return false;
+    }
+}
+
+passwordInput.addEventListener("input", function() {
+    validatePasswordRules();
+    validateConfirmPassword();
+});
+
+confirmPasswordInput.addEventListener("input", function() {
+    validateConfirmPassword();
+});
+
+registerForm.addEventListener("submit", function(e) {
+    const strongPassword = validatePasswordRules();
+    const matchedPassword = validateConfirmPassword();
+
+    if (!strongPassword) {
+        e.preventDefault();
+        alert("Password must be at least 12 characters long and include 1 uppercase letter, 1 number, and 1 special character.");
+        passwordInput.focus();
+        return;
+    }
+
+    if (!matchedPassword) {
+        e.preventDefault();
+        alert("Confirm password does not match.");
+        confirmPasswordInput.focus();
+    }
+});
 
 <?php if ($success === '1'): ?>
 let timeLeft = 3;

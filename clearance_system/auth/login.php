@@ -279,9 +279,13 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             flex-direction: column;
             justify-content: center;
             color: #fff;
-            background:
-                linear-gradient(180deg, rgba(7, 87, 42, 0.78), rgba(4, 54, 26, 0.72)),
-                rgba(0,0,0,0.15);
+            background: linear-gradient(135deg,
+                #0f5132 0%,
+                #0b6b40 28%,
+                #0d8c4e 62%,
+                #10b15d 100%
+            );
+            box-shadow: inset 0 0 60px rgba(0,0,0,0.22);
             z-index: 2;
             overflow: hidden;
             isolation: isolate;
@@ -292,24 +296,23 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             position: absolute;
             inset: 0;
             background:
-                radial-gradient(circle at top left, rgba(255,255,255,0.10), transparent 35%),
-                radial-gradient(circle at bottom right, rgba(0,255,140,0.08), transparent 30%);
+                radial-gradient(circle at top right, rgba(255,255,255,0.12), transparent 34%),
+                radial-gradient(circle at bottom left, rgba(255,255,255,0.05), transparent 28%);
             pointer-events: none;
             z-index: 1;
         }
 
-        /* LOGO SHADOW / WATERMARK */
         .login-header::after {
             content: "";
             position: absolute;
             inset: 0;
             background: url('../assets/logo2.png') no-repeat center center;
-            background-size: 340px;
-            opacity: 0.75;
-            filter: blur(1.2px) drop-shadow(0 0 18px rgba(255,255,255,0.10));
+            background-size: 360px;
+            opacity: 0.42;
+            filter: blur(0.6px) drop-shadow(0 0 16px rgba(255,255,255,0.18));
             pointer-events: none;
             z-index: 1;
-            transform: scale(1.02);
+            transform: scale(1.03);
         }
 
         .school-title,
@@ -327,39 +330,17 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             margin-bottom: 22px;
             color: #ffffff;
             text-shadow:
-                0 4px 10px rgba(0, 0, 0, 0.25),
-                0 0 12px rgba(255,255,255,0.08);
-            animation: titleGlow 3.8s ease-in-out infinite;
-        }
-
-        @keyframes titleGlow {
-            0% {
-                text-shadow:
-                    0 4px 10px rgba(0, 0, 0, 0.25),
-                    0 0 10px rgba(255,255,255,0.05),
-                    0 0 0 rgba(0,255,140,0.00);
-            }
-            50% {
-                text-shadow:
-                    0 4px 12px rgba(0, 0, 0, 0.28),
-                    0 0 14px rgba(255,255,255,0.12),
-                    0 0 18px rgba(0,255,140,0.18);
-            }
-            100% {
-                text-shadow:
-                    0 4px 10px rgba(0, 0, 0, 0.25),
-                    0 0 10px rgba(255,255,255,0.05),
-                    0 0 0 rgba(0,255,140,0.00);
-            }
+                0 4px 12px rgba(0, 0, 0, 0.28),
+                0 0 14px rgba(255,255,255,0.10);
         }
 
         .school-subtitle {
             font-size: 31px;
             line-height: 1.35;
-            color: rgba(255, 255, 255, 0.96);
+            color: rgba(255, 255, 255, 0.97);
             font-weight: 800;
             margin-top: 4px;
-            text-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+            text-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
             max-width: 430px;
         }
 
@@ -383,24 +364,73 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             position: relative;
             width: 100%;
             max-width: 500px;
-            background: #fff;
             border-radius: 22px;
             padding: 30px 28px;
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
             animation: popupFade 0.25s ease;
         }
 
+        .forgot-modal-box {
+            background: #fff;
+        }
+
         .contact-modal-box {
             max-width: 1100px;
+            background: linear-gradient(135deg,
+                #0f5132 0%,
+                #0b6b40 28%,
+                #0d8c4e 62%,
+                #10b15d 100%
+            );
+            box-shadow:
+                0 25px 60px rgba(0, 0, 0, 0.30),
+                inset 0 0 50px rgba(0,0,0,0.18);
+            border: 1px solid rgba(255,255,255,0.18);
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .contact-modal-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at top right, rgba(255,255,255,0.10), transparent 30%),
+                radial-gradient(circle at bottom left, rgba(255,255,255,0.05), transparent 25%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .contact-modal-box::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: url('../assets/logo2.png') no-repeat center center;
+            background-size: 360px;
+            opacity: 0.12;
+            filter: blur(0.8px);
+            pointer-events: none;
+            z-index: 1;
         }
 
         .forgot-modal-box h2,
         .contact-modal-box h2 {
             text-align: center;
-            color: #0a5c2d;
             margin-bottom: 18px;
             font-size: 28px;
             font-weight: 800;
+            position: relative;
+            z-index: 2;
+        }
+
+        .forgot-modal-box h2 {
+            color: #0a5c2d;
+        }
+
+        .contact-modal-box h2 {
+            color: #ffffff;
+            letter-spacing: 1px;
+            text-shadow: 0 3px 10px rgba(0,0,0,0.22);
         }
 
         .close-modal,
@@ -410,8 +440,16 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             right: 18px;
             font-size: 30px;
             cursor: pointer;
-            color: #444;
             font-weight: bold;
+            z-index: 3;
+        }
+
+        .close-modal {
+            color: #444;
+        }
+
+        .contact-close {
+            color: #ffffff;
         }
 
         .question-icon {
@@ -450,20 +488,25 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
             margin-top: 20px;
+            position: relative;
+            z-index: 2;
         }
 
         .contact-card {
-            background: #f7faf8;
-            border: 1px solid #dce8e0;
-            border-radius: 18px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.16);
+            border-radius: 20px;
             padding: 22px 18px;
             text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: inset 0 0 14px rgba(255,255,255,0.04);
             transition: none;
         }
 
         .contact-card:hover {
             transform: none;
-            box-shadow: none;
+            box-shadow: inset 0 0 14px rgba(255,255,255,0.04);
         }
 
         .profile-icon {
@@ -472,8 +515,9 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
             margin: 0 auto 14px;
             border-radius: 50%;
             overflow: hidden;
-            border: 4px solid #0bb15d;
-            background: #eaeaea;
+            border: 4px solid #16d26e;
+            background: rgba(255,255,255,0.10);
+            box-shadow: 0 0 16px rgba(22,210,110,0.18);
         }
 
         .profile-icon img {
@@ -483,16 +527,21 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
         }
 
         .contact-card h3 {
-            color: #0a5c2d;
+            color: #ffffff;
             font-size: 18px;
             margin-bottom: 12px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.18);
         }
 
         .contact-card p {
             font-size: 14px;
-            color: #333;
+            color: rgba(255,255,255,0.94);
             line-height: 1.6;
             margin-bottom: 8px;
+        }
+
+        .contact-card strong {
+            color: #ffffff;
         }
 
         @keyframes popupFade {
@@ -522,7 +571,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
 
             .login-header::after {
                 background-size: 240px;
-                opacity: 0.09;
+                opacity: 0.16;
             }
 
             .school-title {
@@ -543,7 +592,7 @@ $error = isset($_GET['error']) ? $_GET['error'] : '';
         @media (max-width: 500px) {
             .login-header::after {
                 background-size: 180px;
-                opacity: 0.08;
+                opacity: 0.14;
             }
 
             .school-title {

@@ -7,12 +7,11 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $courseFilter = isset($_GET['course']) ? trim($_GET['course']) : '';
 $viewRole = isset($_GET['view']) ? trim($_GET['view']) : 'students';
 $current_page = basename($_SERVER['PHP_SELF']);
 
-$sql = "SELECT * FROM users WHERE 1=1";
+$sql = "SELECT * FROM users WHERE is_deleted = 0";
 $params = [];
 $types = "";
 
@@ -28,16 +27,6 @@ if (!empty($courseFilter) && $viewRole === 'students') {
     $types .= "s";
 }
 
-if (!empty($search)) {
-    $sql .= " AND (firstname LIKE ? OR lastname LIKE ? OR email LIKE ? OR contact_number LIKE ?)";
-    $searchLike = "%" . $search . "%";
-    $params[] = $searchLike;
-    $params[] = $searchLike;
-    $params[] = $searchLike;
-    $params[] = $searchLike;
-    $types .= "ssss";
-}
-
 $sql .= " ORDER BY id DESC";
 
 $stmt = $conn->prepare($sql);
@@ -49,10 +38,10 @@ if (!empty($params)) {
 $stmt->execute();
 $result = $stmt->get_result();
 
-$totalStudentsQuery = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='student'");
+$totalStudentsQuery = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='student' AND is_deleted = 0");
 $totalStudents = $totalStudentsQuery->fetch_assoc()['total'];
 
-$totalTeachersQuery = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='teacher'");
+$totalTeachersQuery = $conn->query("SELECT COUNT(*) as total FROM users WHERE role='teacher' AND is_deleted = 0");
 $totalTeachers = $totalTeachersQuery->fetch_assoc()['total'];
 
 $adminName = isset($_SESSION['name']) && !empty($_SESSION['name']) ? $_SESSION['name'] : 'Administrator';
@@ -423,26 +412,27 @@ if ($admin_id > 0) {
             flex-wrap: wrap;
         }
 
-        .search-form input[type="text"] {
+        .live-search-input {
             flex: 1;
             min-width: 0;
-            height: 54px;
+            height: 56px;
+            border-radius: 18px;
             border: 2px solid #d6dee2;
-            border-radius: 16px;
             padding: 0 18px;
             font-size: 15px;
             outline: none;
-            transition: 0.25s ease;
-            background: #fff;
+            background: linear-gradient(135deg, #ffffff, #f2f7f4);
             color: #1b1b1b;
+            transition: 0.25s ease;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
         }
 
-        .search-form input[type="text"]:focus {
+        .live-search-input:focus {
             border-color: #12c96b;
-            box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.12);
+            box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.15);
+            background: #ffffff;
         }
 
-        .search-form button,
         .darkmode-toggle {
             height: 54px;
             padding: 0 24px;
@@ -452,18 +442,9 @@ if ($admin_id > 0) {
             font-weight: 800;
             cursor: pointer;
             transition: 0.25s ease;
-        }
-
-        .search-form button {
-            background: linear-gradient(135deg, #0fb761, #0a944d);
-        }
-
-        .darkmode-toggle {
             background: #1f2937;
-            color: #fff;
         }
 
-        .search-form button:hover,
         .darkmode-toggle:hover {
             transform: translateY(-1px);
             box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
@@ -601,6 +582,7 @@ if ($admin_id > 0) {
             transition: 0.25s ease;
             display: inline-block;
             min-width: 72px;
+            text-align: center;
         }
 
         .action-btn:hover {
@@ -617,7 +599,7 @@ if ($admin_id > 0) {
             color: #1d1d1d;
         }
 
-        .delete-btn {
+        .archive-btn {
             background: #ff5d57;
         }
 
@@ -628,7 +610,6 @@ if ($admin_id > 0) {
             padding: 26px 10px;
         }
 
-        /* DARK MODE - PAGE DARK, TABLE STAYS WHITE */
         body.dark-mode {
             background: #0f172a;
             color: #e5e7eb;
@@ -656,14 +637,21 @@ if ($admin_id > 0) {
             border-color: #334155;
         }
 
-        body.dark-mode .search-form input[type="text"] {
+        body.dark-mode .live-search-input {
             background: #111827;
             color: #f8fafc;
             border-color: #334155;
+            box-shadow: none;
         }
 
-        body.dark-mode .search-form input[type="text"]::placeholder {
+        body.dark-mode .live-search-input::placeholder {
             color: #94a3b8;
+        }
+
+        body.dark-mode .live-search-input:focus {
+            border-color: #12c96b;
+            box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.15);
+            background: #111827;
         }
 
         body.dark-mode .darkmode-toggle {
@@ -788,7 +776,6 @@ if ($admin_id > 0) {
                 justify-content: space-between;
             }
 
-            .search-form button,
             .darkmode-toggle {
                 width: 100%;
             }
@@ -843,6 +830,10 @@ if ($admin_id > 0) {
                     <span>List of Students</span>
                 </a>
 
+                <a class="side-btn <?php echo ($current_page === 'recently_deleted.php') ? 'active' : ''; ?>" href="recently_deleted.php">
+                    <span>Recently Deleted</span>
+                </a>
+
                 <a class="side-btn <?php echo ($current_page === 'admin_teacher_album.php') ? 'active' : ''; ?>" href="admin_teacher_album.php">
                     <span>Teacher Album</span>
                 </a>
@@ -866,21 +857,16 @@ if ($admin_id > 0) {
 
         <div class="content-area">
             <div class="top-controls">
-                <form method="GET" action="admin.php" class="search-form">
-                    <input type="hidden" name="view" value="<?php echo htmlspecialchars($viewRole); ?>">
-                    <?php if (!empty($courseFilter) && $viewRole === 'students'): ?>
-                        <input type="hidden" name="course" value="<?php echo htmlspecialchars($courseFilter); ?>">
-                    <?php endif; ?>
-
+                <div class="search-form">
                     <input
                         type="text"
-                        name="search"
-                        placeholder="Search by name, email, or contact..."
-                        value="<?php echo htmlspecialchars($search); ?>"
+                        id="liveSearch"
+                        class="live-search-input"
+                        placeholder="🔍 Search users..."
+                        autocomplete="off"
                     >
-                    <button type="submit">Search</button>
                     <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">🌙 DARK MODE</button>
-                </form>
+                </div>
 
                 <div class="totals-box">
                     <?php if ($viewRole === 'students'): ?>
@@ -890,7 +876,7 @@ if ($admin_id > 0) {
                         <div class="count">
                             <?php
                             if (!empty($courseFilter)) {
-                                $countStmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role='student' AND course=?");
+                                $countStmt = $conn->prepare("SELECT COUNT(*) as total FROM users WHERE role='student' AND course=? AND is_deleted = 0");
                                 $countStmt->bind_param("s", $courseFilter);
                                 $countStmt->execute();
                                 $countRes = $countStmt->get_result()->fetch_assoc();
@@ -923,11 +909,24 @@ if ($admin_id > 0) {
                             <th>User Management</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="usersTableBody">
                         <?php if ($result->num_rows > 0): ?>
                             <?php $display_id = 1; ?>
                             <?php while($row = $result->fetch_assoc()): ?>
-                                <tr>
+                                <?php
+                                    $search_text = strtolower(
+                                        $display_id . ' ' .
+                                        $row['id'] . ' ' .
+                                        $row['lastname'] . ' ' .
+                                        $row['firstname'] . ' ' .
+                                        $row['lastname'] . ', ' . $row['firstname'] . ' ' .
+                                        $row['email'] . ' ' .
+                                        $row['contact_number'] . ' ' .
+                                        $row['role'] . ' ' .
+                                        ($row['course'] ?? '')
+                                    );
+                                ?>
+                                <tr class="searchable-row" data-search="<?php echo htmlspecialchars($search_text); ?>">
                                     <td><?php echo $display_id; ?></td>
                                     <td><?php echo htmlspecialchars($row['lastname'] . ', ' . $row['firstname']); ?></td>
                                     <td><?php echo htmlspecialchars($row['email']); ?></td>
@@ -955,12 +954,18 @@ if ($admin_id > 0) {
                                             <?php endif; ?>
 
                                             <a href="edit_user.php?id=<?php echo $row['id']; ?>" class="action-btn edit-btn">EDIT</a>
-                                            <a href="delete_user.php?id=<?php echo $row['id']; ?>" class="action-btn delete-btn" onclick="return confirm('Delete this user?')">DELETE</a>
+                                            <a href="delete_user.php?id=<?php echo $row['id']; ?>" class="action-btn archive-btn" onclick="return confirm('Move this user to Recently Deleted?')">DELETE</a>
                                         </div>
                                     </td>
                                 </tr>
                                 <?php $display_id++; ?>
                             <?php endwhile; ?>
+
+                            <tr id="noSearchResultRow" style="display: none;">
+                                <td colspan="<?php echo ($viewRole === 'students') ? '8' : '7'; ?>" class="empty-row">
+                                    No matching users found.
+                                </td>
+                            </tr>
                         <?php else: ?>
                             <tr>
                                 <td colspan="<?php echo ($viewRole === 'students') ? '8' : '7'; ?>" class="empty-row">
@@ -1022,6 +1027,32 @@ if ($admin_id > 0) {
 
     document.addEventListener('DOMContentLoaded', function() {
         applyDarkModeState();
+
+        const searchInput = document.getElementById("liveSearch");
+        const rows = document.querySelectorAll(".searchable-row");
+        const noSearchResultRow = document.getElementById("noSearchResultRow");
+
+        if (searchInput) {
+            searchInput.addEventListener("input", function () {
+                const value = this.value.toLowerCase().trim();
+                let visibleCount = 0;
+
+                rows.forEach(function (row) {
+                    const searchText = row.getAttribute("data-search") || "";
+
+                    if (searchText.includes(value)) {
+                        row.style.display = "";
+                        visibleCount++;
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+
+                if (noSearchResultRow) {
+                    noSearchResultRow.style.display = visibleCount === 0 ? "" : "none";
+                }
+            });
+        }
     });
 </script>
 

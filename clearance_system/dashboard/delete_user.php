@@ -7,19 +7,21 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
-if (!isset($_GET['id'])) {
-    die("User ID not found.");
+if (!isset($_GET['id']) || empty($_GET['id'])) {
+    header("Location: admin.php");
+    exit;
 }
 
 $id = intval($_GET['id']);
 
-$stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+$stmt = $conn->prepare("UPDATE users SET is_deleted = 1, deleted_at = NOW() WHERE id = ?");
 $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
-    header("Location: admin.php");
+    header("Location: admin.php?msg=archived");
     exit;
 } else {
-    echo "Delete failed.";
+    header("Location: admin.php?msg=error");
+    exit;
 }
 ?>

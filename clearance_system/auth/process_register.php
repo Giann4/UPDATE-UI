@@ -43,6 +43,18 @@ if ($password !== $confirm_password) {
     exit;
 }
 
+/* STRONG PASSWORD VALIDATION
+   REQUIRED:
+   - at least 12 characters
+   - 1 uppercase letter
+   - 1 number
+   - 1 special character
+*/
+if (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/', $password)) {
+    header("Location: register.php?error=" . urlencode("Password must be at least 12 characters long and include 1 uppercase letter, 1 number, and 1 special character."));
+    exit;
+}
+
 /* ROLE VALIDATION */
 if ($role !== 'student' && $role !== 'teacher') {
     header("Location: register.php?error=" . urlencode("Invalid role selected."));

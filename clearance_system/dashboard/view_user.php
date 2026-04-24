@@ -83,6 +83,18 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             font-family:Arial, sans-serif;
         }
 
+        :root{
+            --bg-main:#d9d9d9;
+            --sidebar1:rgba(6,56,69,0.90);
+            --sidebar2:rgba(3,47,57,0.90);
+            --header:#8fbc67;
+            --subheader:#003b49;
+            --subheader-text:#00ff84;
+            --text:#0f172a;
+            --muted:#64748b;
+            --shadow:0 12px 30px rgba(0,0,0,0.10);
+        }
+
         body{
             background:#d9d9d9;
         }
@@ -92,59 +104,243 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             min-height:100vh;
         }
 
+        /* SIDEBAR */
         .sidebar{
-            width:210px;
-            background:#003b49;
-            color:white;
-            padding:20px 10px;
-            text-align:center;
+            position:fixed;
+            top:0;
+            left:0;
+            width:250px;
+            height:100vh;
+            background:linear-gradient(180deg, var(--sidebar1) 0%, var(--sidebar2) 100%);
+            color:#fff;
+            padding:18px 14px;
+            overflow-y:auto;
+            z-index:1000;
+            border-right:1px solid rgba(255,255,255,0.08);
+            box-shadow:16px 0 38px rgba(0,0,0,0.16);
+            display:flex;
+            flex-direction:column;
+            justify-content:space-between;
+            backdrop-filter:blur(12px);
+            -webkit-backdrop-filter:blur(12px);
         }
 
-        .profile-img{
-            width:90px;
-            height:90px;
+        .sidebar::-webkit-scrollbar{
+            width:6px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb{
+            background:rgba(255,255,255,0.18);
+            border-radius:10px;
+        }
+
+        .sidebar-top{
+            display:flex;
+            flex-direction:column;
+            gap:16px;
+        }
+
+        .brand-mini{
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:6px 8px 2px;
+        }
+
+        .brand-dot{
+            width:12px;
+            height:12px;
+            border-radius:50%;
+            background:linear-gradient(135deg, #d7ff96, #8fbc67);
+            box-shadow:0 0 15px rgba(184,233,134,0.55);
+            flex-shrink:0;
+        }
+
+        .brand-text{
+            font-size:12px;
+            letter-spacing:1.4px;
+            text-transform:uppercase;
+            color:#cce6ea;
+            font-weight:900;
+        }
+
+        .profile-box{
+            position:relative;
+            background:linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06));
+            border:1px solid rgba(255,255,255,0.10);
+            border-radius:28px;
+            padding:22px 14px 18px;
+            text-align:center;
+            box-shadow:0 18px 30px rgba(0,0,0,0.18);
+            overflow:hidden;
+            backdrop-filter:blur(10px);
+            -webkit-backdrop-filter:blur(10px);
+        }
+
+        .profile-box::before{
+            content:"";
+            position:absolute;
+            top:0;
+            left:0;
+            right:0;
+            height:86px;
+            background:linear-gradient(135deg, rgba(143,188,103,0.42), rgba(108,190,255,0.18));
+        }
+
+        .profile-icon-wrap{
+            position:relative;
+            width:104px;
+            height:104px;
+            margin:8px auto 12px;
+            padding:4px;
+            border-radius:50%;
+            background:linear-gradient(135deg, #edffd0, #8fbc67);
+            box-shadow:0 12px 22px rgba(0,0,0,0.18);
+            z-index:2;
+            overflow:hidden;
+        }
+
+        .profile-icon{
+            width:100%;
+            height:100%;
             border-radius:50%;
             object-fit:cover;
-            border:3px solid #fff;
-            margin-bottom:12px;
-        }
-
-        .sidebar h3{
-            font-size:18px;
-            margin-bottom:4px;
-        }
-
-        .sidebar p{
-            font-size:14px;
-            margin-bottom:25px;
-            word-break:break-word;
-        }
-
-        .sidebar a{
             display:block;
-            text-decoration:none;
+            border:3px solid #fff;
             background:#fff;
-            color:#000;
-            padding:16px;
-            border-radius:30px;
-            margin:14px 0;
-            font-weight:bold;
-            font-size:16px;
-            text-align:center;
-            transition:0.2s ease;
         }
 
-        .sidebar a.active{
-            background:#76b3de;
+        .profile-box h3{
+            position:relative;
+            font-size:28px;
+            margin-bottom:6px;
+            font-weight:900;
+            line-height:1.08;
+            z-index:2;
+            color:#fff;
+            text-transform:uppercase;
         }
 
-        .sidebar a:hover{
-            transform:translateY(-1px);
-            opacity:0.95;
+        .profile-box p{
+            position:relative;
+            font-size:13px;
+            color:#daf2f6;
+            margin-bottom:10px;
+            word-break:break-word;
+            line-height:1.45;
+            z-index:2;
         }
 
+        .admin-badge{
+            display:inline-block;
+            padding:10px 16px;
+            border-radius:999px;
+            background:linear-gradient(135deg, #0fd36f, #35e883);
+            color:#fff;
+            font-size:12px;
+            font-weight:900;
+            letter-spacing:.6px;
+            position:relative;
+            z-index:2;
+            box-shadow:0 10px 18px rgba(16, 201, 107, 0.25);
+        }
+
+        .menu-label{
+            font-size:12px;
+            text-transform:uppercase;
+            letter-spacing:1.2px;
+            color:#b8d7dd;
+            font-weight:900;
+            margin:4px 6px 0;
+        }
+
+        .nav-group{
+            display:flex;
+            flex-direction:column;
+            gap:10px;
+        }
+
+        .side-btn{
+            display:flex;
+            align-items:center;
+            gap:12px;
+            width:100%;
+            text-decoration:none;
+            background:rgba(255,255,255,0.08);
+            color:#fff;
+            padding:15px 16px;
+            border-radius:18px;
+            font-weight:800;
+            font-size:15px;
+            transition:all .22s ease;
+            border:1px solid rgba(255,255,255,0.08);
+            box-shadow:0 6px 14px rgba(0,0,0,0.10);
+            position:relative;
+            overflow:hidden;
+            backdrop-filter:blur(8px);
+            -webkit-backdrop-filter:blur(8px);
+        }
+
+        .side-btn::before{
+            content:"";
+            position:absolute;
+            left:0;
+            top:0;
+            bottom:0;
+            width:0;
+            background:linear-gradient(180deg, #d9ff9f, #8fbc67);
+            transition:width .22s ease;
+            border-radius:18px;
+        }
+
+        .side-btn span{
+            position:relative;
+            z-index:2;
+        }
+
+        .side-btn:hover{
+            transform:translateX(6px);
+            background:rgba(255,255,255,0.14);
+        }
+
+        .side-btn:hover::before{
+            width:4px;
+        }
+
+        .side-btn.active{
+            background:linear-gradient(135deg, #dff4ff, #bde5ff);
+            color:#062d38;
+            border:none;
+            box-shadow:0 12px 22px rgba(0,0,0,0.14);
+        }
+
+        .side-btn.active::before{
+            width:5px;
+            background:linear-gradient(180deg, #ffffff, #eaf7ff);
+        }
+
+        .sidebar-bottom{
+            margin-top:18px;
+        }
+
+        .logout-btn{
+            background:rgba(255,255,255,0.08) !important;
+        }
+
+        .logout-btn:hover{
+            background:#d94c4c !important;
+            color:#fff !important;
+        }
+
+        .logout-btn:hover::before{
+            width:4px;
+            background:#fff;
+        }
+
+        /* MAIN */
         .main-content{
             flex:1;
+            margin-left:250px;
         }
 
         .top-header{
@@ -421,13 +617,19 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
             }
         }
 
-        @media (max-width: 700px){
+        @media (max-width: 900px){
             .wrapper{
                 flex-direction:column;
             }
 
             .sidebar{
                 width:100%;
+                height:auto;
+                position:relative;
+            }
+
+            .main-content{
+                margin-left:0;
             }
 
             .content{
@@ -623,13 +825,32 @@ $full_name = $user['lastname'] . ', ' . $user['firstname'];
 
 <div class="wrapper">
     <div class="sidebar">
-        <img src="<?php echo $photo; ?>" alt="Profile" class="profile-img" onerror="this.src='../assets/southern.png';">
-        <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
-        <p><?php echo htmlspecialchars($user['email']); ?></p>
+        <div class="sidebar-top">
+            <div class="brand-mini">
+                <span class="brand-dot"></span>
+                <span class="brand-text">Admin Panel</span>
+            </div>
 
-        <a href="admin.php?view=students">Back to Students</a>
-        <a href="#" class="active">Student Result Copy</a>
-        <a href="../auth/logout.php">Log Out</a>
+            <div class="profile-box">
+                <div class="profile-icon-wrap">
+                    <img src="<?php echo $photo; ?>" alt="Profile" class="profile-icon" onerror="this.src='../assets/southern.png';">
+                </div>
+                <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
+                <p><?php echo htmlspecialchars($user['email']); ?></p>
+                <div class="admin-badge">STUDENT VIEW</div>
+            </div>
+
+            <div class="menu-label">Navigation</div>
+
+            <div class="nav-group">
+                <a href="admin.php?view=students" class="side-btn"><span>🏠 Back to Students</span></a>
+                <a href="#" class="side-btn active"><span>📄 Student Result Copy</span></a>
+            </div>
+        </div>
+
+        <div class="sidebar-bottom">
+            <a href="../auth/logout.php" class="side-btn logout-btn"><span>↩ Log Out</span></a>
+        </div>
     </div>
 
     <div class="main-content">
