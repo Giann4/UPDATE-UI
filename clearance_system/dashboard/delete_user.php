@@ -7,8 +7,12 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     exit;
 }
 
+$returnUrl = isset($_GET['return']) && !empty($_GET['return'])
+    ? $_GET['return']
+    : 'admin.php?view=students';
+
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: admin.php");
+    header("Location: " . $returnUrl);
     exit;
 }
 
@@ -18,10 +22,12 @@ $stmt = $conn->prepare("UPDATE users SET is_deleted = 1, deleted_at = NOW() WHER
 $stmt->bind_param("i", $id);
 
 if ($stmt->execute()) {
-    header("Location: admin.php?msg=archived");
+    $separator = (strpos($returnUrl, '?') !== false) ? '&' : '?';
+    header("Location: " . $returnUrl . $separator . "msg=archived");
     exit;
 } else {
-    header("Location: admin.php?msg=error");
+    $separator = (strpos($returnUrl, '?') !== false) ? '&' : '?';
+    header("Location: " . $returnUrl . $separator . "msg=error");
     exit;
 }
 ?>

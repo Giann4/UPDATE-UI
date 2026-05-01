@@ -40,7 +40,6 @@ if ($admin_id > 0) {
 
 /* UPLOAD / SAVE CROPPED ADMIN PHOTO */
 if (isset($_POST['upload_photo'])) {
-
     if (isset($_POST['cropped_image']) && !empty($_POST['cropped_image'])) {
         $cropped_image = trim($_POST['cropped_image']);
 
@@ -72,7 +71,6 @@ if (isset($_POST['upload_photo'])) {
                     $target_file = $upload_dir . $new_file_name;
 
                     if (file_put_contents($target_file, $decoded_image) !== false) {
-
                         if (!empty($admin['profile_photo'])) {
                             $old_file = $upload_dir . $admin['profile_photo'];
                             if (file_exists($old_file)) {
@@ -116,35 +114,38 @@ if (isset($_POST['change_password'])) {
     $new_password = trim($_POST['new_password']);
     $confirm_password = trim($_POST['confirm_password']);
 
+    $has_length = strlen($new_password) >= 12;
+    $has_uppercase = preg_match('/[A-Z]/', $new_password);
+    $has_number = preg_match('/[0-9]/', $new_password);
+    $has_special = preg_match('/[\W_]/', $new_password);
+
     if (empty($current_password) || empty($new_password) || empty($confirm_password)) {
         $message = "Please fill in all password fields.";
+        $message_type = "error";
+    } elseif (!$has_length || !$has_uppercase || !$has_number || !$has_special) {
+        $message = "New password must meet all password requirements.";
         $message_type = "error";
     } elseif ($new_password !== $confirm_password) {
         $message = "New password and confirm password do not match.";
         $message_type = "error";
-    } elseif (strlen($new_password) < 4) {
-        $message = "New password must be at least 4 characters.";
-        $message_type = "error";
     } else {
         $stored_password = $admin['password'];
         $password_matched = false;
-        $new_hashed_password = "";
 
         if ($stored_password === md5($current_password)) {
             $password_matched = true;
-            $new_hashed_password = md5($new_password);
         } elseif (password_verify($current_password, $stored_password)) {
             $password_matched = true;
-            $new_hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
         } elseif ($stored_password === $current_password) {
             $password_matched = true;
-            $new_hashed_password = md5($new_password);
         }
 
         if (!$password_matched) {
             $message = "Current password is incorrect.";
             $message_type = "error";
         } else {
+            $new_hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+
             $update_stmt = $conn->prepare("UPDATE admin SET password = ? WHERE id = ?");
             $update_stmt->bind_param("si", $new_hashed_password, $admin_id);
 
@@ -170,807 +171,848 @@ if (!empty($admin['profile_photo']) && file_exists($upload_dir . $admin['profile
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Change Password</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
-    <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial, Helvetica, sans-serif;
-        }
-
-        body{
-            background:
-                radial-gradient(circle at top left, rgba(18, 201, 107, 0.08), transparent 28%),
-                radial-gradient(circle at bottom right, rgba(3, 59, 70, 0.10), transparent 30%),
-                #edf2f4;
-            color:#1b1b1b;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        body.dark-mode{
-            background:#0f172a;
-            color:#e5e7eb;
-        }
-
-        .admin-wrapper{
-            display:flex;
-            min-height:100vh;
-        }
-
-        .sidebar{
-            position:fixed;
-            top:0;
-            left:0;
-            width:235px;
-            height:100vh;
-            background:linear-gradient(180deg, #063845 0%, #032f39 55%, #022933 100%);
-            color:#fff;
-            padding:18px 14px;
-            overflow-y:auto;
-            z-index:1000;
-            box-shadow:10px 0 28px rgba(0,0,0,0.18);
-            display:flex;
-            flex-direction:column;
-            justify-content:space-between;
-            border-right:1px solid rgba(255,255,255,0.06);
-        }
-
-        .sidebar::-webkit-scrollbar{
-            width:6px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb{
-            background:rgba(255,255,255,0.18);
-            border-radius:10px;
-        }
-
-        .sidebar-top{
-            display:flex;
-            flex-direction:column;
-            gap:16px;
-        }
-
-        .brand-mini{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            padding:6px 8px 2px;
-        }
-
-        .brand-dot{
-            width:12px;
-            height:12px;
-            border-radius:50%;
-            background:linear-gradient(135deg, #b8e986, #8fbc67);
-            box-shadow:0 0 14px rgba(184,233,134,0.45);
-            flex-shrink:0;
-        }
-
-        .brand-text{
-            font-size:12px;
-            letter-spacing:1.2px;
-            text-transform:uppercase;
-            color:#c7e1e6;
-            font-weight:800;
-        }
-
-        .profile-box{
-            position:relative;
-            background:rgba(255,255,255,0.08);
-            border:1px solid rgba(255,255,255,0.10);
-            border-radius:24px;
-            padding:20px 14px 18px;
-            text-align:center;
-            box-shadow:0 12px 24px rgba(0,0,0,0.18);
-            overflow:hidden;
-        }
-
-        .profile-box::before{
-            content:"";
-            position:absolute;
-            top:0;
-            left:0;
-            right:0;
-            height:72px;
-            background:linear-gradient(135deg, rgba(143,188,103,0.35), rgba(118,179,222,0.22));
-        }
-
-        .profile-icon-wrap{
-            position:relative;
-            width:98px;
-            height:98px;
-            margin:8px auto 12px;
-            padding:4px;
-            border-radius:50%;
-            background:linear-gradient(135deg, #d0f0a9, #8fbc67);
-            box-shadow:0 10px 18px rgba(0,0,0,0.18);
-            z-index:2;
-            overflow:hidden;
-        }
-
-        .profile-icon{
-            width:100%;
-            height:100%;
-            border-radius:50%;
-            object-fit:cover;
-            border:3px solid #fff;
-            background:#fff;
-            display:block;
-        }
-
-        .profile-box h3{
-            position:relative;
-            font-size:26px;
-            margin-bottom:6px;
-            font-weight:800;
-            line-height:1.1;
-            z-index:2;
-            letter-spacing:0.5px;
-        }
-
-        .profile-box p{
-            position:relative;
-            font-size:13px;
-            color:#d9eef2;
-            margin-bottom:10px;
-            word-break:break-word;
-            line-height:1.45;
-            z-index:2;
-        }
-
-        .admin-badge{
-            display:inline-block;
-            padding:9px 15px;
-            border-radius:999px;
-            background:linear-gradient(135deg, #10c96b, #2de07f);
-            color:#fff;
-            font-size:12px;
-            font-weight:800;
-            letter-spacing:.5px;
-            position:relative;
-            z-index:2;
-            box-shadow:0 8px 18px rgba(16, 201, 107, 0.25);
-        }
-
-        .menu-label{
-            font-size:12px;
-            text-transform:uppercase;
-            letter-spacing:1px;
-            color:#b8d7dd;
-            font-weight:800;
-            margin:2px 6px 0;
-        }
-
-        .nav-group{
-            display:flex;
-            flex-direction:column;
-            gap:10px;
-        }
-
-        .side-btn{
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            width:100%;
-            text-align:center;
-            text-decoration:none;
-            background:rgba(255,255,255,0.07);
-            color:#fff;
-            padding:15px 16px;
-            border-radius:18px;
-            font-weight:800;
-            font-size:15px;
-            transition:all .22s ease;
-            border:1px solid rgba(255,255,255,0.08);
-            box-shadow:0 6px 14px rgba(0,0,0,0.10);
-            position:relative;
-            overflow:hidden;
-            margin-bottom:0;
-        }
-
-        .side-btn::before{
-            content:"";
-            position:absolute;
-            left:0;
-            top:0;
-            bottom:0;
-            width:0;
-            background:linear-gradient(180deg, #bfe68f, #8fbc67);
-            transition:width .22s ease;
-            border-radius:18px;
-        }
-
-        .side-btn span{
-            position:relative;
-            z-index:2;
-        }
-
-        .side-btn:hover{
-            transform:translateX(6px);
-            background:rgba(255,255,255,0.14);
-        }
-
-        .side-btn:hover::before{
-            width:4px;
-        }
-
-        .side-btn.active{
-            background:linear-gradient(135deg, #18c96d, #36df84);
-            color:#ffffff;
-            border:none;
-            box-shadow:0 8px 18px rgba(16, 201, 107, 0.20);
-        }
-
-        .side-btn.active::before{
-            width:5px;
-            background:linear-gradient(180deg, #ffffff, #eaf7ff);
-        }
-
-        .sidebar-bottom{
-            margin-top:18px;
-        }
-
-        .logout-btn{
-            background:rgba(255,255,255,0.08) !important;
-        }
-
-        .logout-btn:hover{
-            background:#d94c4c !important;
-            color:#fff !important;
-            transform:translateX(6px);
-        }
-
-        .logout-btn:hover::before{
-            width:4px;
-            background:#fff;
-        }
-
-        .main-content{
-            flex:1;
-            min-width:0;
-            margin-left:235px;
-        }
-
-        .top-header{
-            background:linear-gradient(135deg, #98c76b, #85b95d);
-            color:#111;
-            text-align:center;
-            padding:24px 20px;
-            font-size:25px;
-            font-weight:900;
-            letter-spacing:0.5px;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        .sub-header{
-            background:#033b46;
-            color:#00ff8c;
-            text-align:center;
-            padding:14px 20px;
-            font-size:21px;
-            font-weight:900;
-            letter-spacing:0.4px;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        body.dark-mode .top-header{
-            background:#6f9f4f;
-            color:#f8fafc;
-        }
-
-        body.dark-mode .sub-header{
-            background:#022c3a;
-            color:#6fffc0;
-        }
-
-        .content-area{
-            padding:28px 24px;
-        }
-
-        .top-actions{
-            display:flex;
-            justify-content:flex-end;
-            margin-bottom:18px;
-        }
-
-        .darkmode-toggle{
-            height:52px;
-            padding:0 24px;
-            border:none;
-            border-radius:16px;
-            background:#1f2937;
-            color:#fff;
-            font-weight:800;
-            cursor:pointer;
-            transition:0.25s ease;
-            box-shadow:0 10px 18px rgba(0, 0, 0, 0.18);
-        }
-
-        .darkmode-toggle:hover{
-            transform:translateY(-1px);
-        }
-
-        body.dark-mode .darkmode-toggle{
-            background:#6f9f4f;
-            color:#f8fafc;
-        }
-
-        .page-grid{
-            display:grid;
-            grid-template-columns:2fr 1fr;
-            gap:22px;
-            align-items:start;
-        }
-
-        .card,
-        .profile-panel-card{
-            background:#fff;
-            border-radius:24px;
-            box-shadow:0 12px 30px rgba(0,0,0,0.07);
-            padding:26px;
-            transition: background 0.25s ease, color 0.25s ease, box-shadow 0.25s ease;
-        }
-
-        body.dark-mode .card,
-        body.dark-mode .profile-panel-card{
-            background:#111827;
-            box-shadow:0 12px 30px rgba(0,0,0,0.28);
-        }
-
-        .card h2{
-            font-size:34px;
-            color:#033b46;
-            margin-bottom:8px;
-        }
-
-        body.dark-mode .card h2{
-            color:#e5f3ff;
-        }
-
-        .card-sub{
-            color:#56666c;
-            margin-bottom:22px;
-            font-size:15px;
-        }
-
-        body.dark-mode .card-sub{
-            color:#cbd5e1;
-        }
-
-        .message{
-            margin-bottom:18px;
-            padding:14px 16px;
-            border-radius:14px;
-            font-weight:800;
-            font-size:14px;
-        }
-
-        .message.success{
-            background:#e9fff1;
-            color:#0d7f40;
-            border:1px solid #a9e1bf;
-        }
-
-        .message.error{
-            background:#ffeaea;
-            color:#b10000;
-            border:1px solid #ffb8b8;
-        }
-
-        body.dark-mode .message.success{
-            background:#1f2937;
-            color:#d1fae5;
-            border-color:#35546b;
-        }
-
-        body.dark-mode .message.error{
-            background:#3a1f1f;
-            color:#ffd5d5;
-            border-color:#7a3d3d;
-        }
-
-        .form-group{
-            margin-bottom:18px;
-        }
-
-        .form-group label{
-            display:block;
-            font-size:14px;
-            font-weight:800;
-            color:#1d3c43;
-            margin-bottom:8px;
-        }
-
-        body.dark-mode .form-group label{
-            color:#cbd5e1;
-        }
-
-        .required{
-            color:#ff4d4f;
-        }
-
-        .input-wrap{
-            position:relative;
-        }
-
-        .form-group input{
-            width:100%;
-            height:56px;
-            padding:0 80px 0 16px;
-            border:1.5px solid #d6dee2;
-            border-radius:14px;
-            font-size:15px;
-            outline:none;
-            transition:0.25s ease;
-            background:#fff;
-            color:#1b1b1b;
-        }
-
-        .form-group input:focus{
-            border-color:#12c96b;
-            box-shadow:0 0 0 4px rgba(18, 201, 107, 0.12);
-        }
-
-        body.dark-mode .form-group input{
-            background:#111827;
-            color:#f8fafc;
-            border-color:#334155;
-        }
-
-        body.dark-mode .form-group input::placeholder{
-            color:#94a3b8;
-        }
-
-        .toggle-password{
-            position:absolute;
-            right:10px;
-            top:50%;
-            transform:translateY(-50%);
-            border:none;
-            border-radius:10px;
-            background:#edf3f5;
-            color:#26464d;
-            padding:8px 12px;
-            font-size:12px;
-            font-weight:800;
-            cursor:pointer;
-        }
-
-        body.dark-mode .toggle-password{
-            background:#334155;
-            color:#f8fafc;
-        }
-
-        .save-btn{
-            border:none;
-            border-radius:14px;
-            background:linear-gradient(135deg, #0fb761, #0a944d);
-            color:#fff;
-            font-weight:800;
-            padding:15px 24px;
-            cursor:pointer;
-            min-width:200px;
-            font-size:15px;
-            box-shadow:0 10px 20px rgba(10, 148, 77, 0.18);
-        }
-
-        .save-btn:hover{
-            opacity:0.95;
-            transform:translateY(-1px);
-        }
-
-        .upload-row{
-            display:flex;
-            justify-content:flex-end;
-            margin-bottom:12px;
-        }
-
-        .upload-btn{
-            display:inline-block;
-            background:#edf3f5;
-            color:#26464d;
-            border:none;
-            padding:10px 14px;
-            border-radius:10px;
-            font-size:13px;
-            font-weight:800;
-            cursor:pointer;
-        }
-
-        .upload-btn:hover{
-            opacity:0.95;
-        }
-
-        body.dark-mode .upload-btn{
-            background:#334155;
-            color:#f8fafc;
-        }
-
-        .hidden-file{
-            display:none;
-        }
-
-        .big-photo{
-            width:150px;
-            height:150px;
-            border-radius:50%;
-            object-fit:cover;
-            border:5px solid #8fbc67;
-            margin:0 auto 16px;
-            display:block;
-            background:#f1f1f1;
-        }
-
-        .selected-file{
-            margin-top:8px;
-            font-size:13px;
-            color:#56666c;
-            word-break:break-word;
-            min-height:20px;
-            text-align:center;
-        }
-
-        body.dark-mode .selected-file{
-            color:#cbd5e1;
-        }
-
-        .upload-submit-wrap{
-            display:flex;
-            justify-content:center;
-            margin-top:14px;
-        }
-
-        .upload-submit{
-            border:none;
-            border-radius:14px;
-            background:#a9d466;
-            color:#163328;
-            font-weight:800;
-            padding:12px 18px;
-            cursor:pointer;
-            font-size:14px;
-            min-width:140px;
-        }
-
-        .info-block{
-            margin-top:18px;
-            text-align:center;
-        }
-
-        .info-label{
-            color:#56666c;
-            font-size:13px;
-            font-weight:800;
-            margin-bottom:6px;
-            text-transform:uppercase;
-        }
-
-        .info-value{
-            font-size:18px;
-            font-weight:800;
-            color:#163037;
-            word-break:break-word;
-        }
-
-        body.dark-mode .info-label{
-            color:#94a3b8;
-        }
-
-        body.dark-mode .info-value{
-            color:#f8fafc;
-        }
-
-        .helper-box{
-            margin-top:22px;
-            background:#f5f9f7;
-            border:1px solid #dce9e1;
-            border-radius:16px;
-            padding:16px;
-        }
-
-        .helper-box h4{
-            color:#1d3c43;
-            font-size:16px;
-            margin-bottom:8px;
-        }
-
-        .helper-box p{
-            color:#56666c;
-            font-size:13px;
-            line-height:1.5;
-        }
-
-        body.dark-mode .helper-box{
-            background:#1f2937;
-            border-color:#334155;
-        }
-
-        body.dark-mode .helper-box h4{
-            color:#f8fafc;
-        }
-
-        body.dark-mode .helper-box p{
-            color:#cbd5e1;
-        }
-
-        .crop-modal{
-            position:fixed;
-            inset:0;
-            background:rgba(0,0,0,0.75);
-            display:none;
-            align-items:center;
-            justify-content:center;
-            z-index:9999;
-            padding:20px;
-        }
-
-        .crop-modal.show{
-            display:flex;
-        }
-
-        .crop-modal-box{
-            width:100%;
-            max-width:820px;
-            background:#0c3f45;
-            border:1px solid rgba(255,255,255,0.12);
-            border-radius:24px;
-            padding:20px;
-            box-shadow:0 20px 60px rgba(0,0,0,0.30);
-        }
-
-        .crop-modal-header{
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            gap:10px;
-            margin-bottom:14px;
-        }
-
-        .crop-modal-title{
-            color:#fff;
-            font-size:22px;
-            font-weight:bold;
-        }
-
-        .crop-close{
-            background:transparent;
-            border:none;
-            color:#fff;
-            font-size:32px;
-            line-height:1;
-            cursor:pointer;
-        }
-
-        .crop-container{
-            width:100%;
-            max-height:500px;
-            overflow:hidden;
-            border-radius:18px;
-            background:#102f34;
-        }
-
-        .crop-container img{
-            display:block;
-            max-width:100%;
-        }
-
-        .crop-modal-actions{
-            display:flex;
-            justify-content:flex-end;
-            gap:10px;
-            margin-top:16px;
-            flex-wrap:wrap;
-        }
-
-        .crop-cancel-btn,
-        .crop-apply-btn{
-            border:none;
-            border-radius:12px;
-            padding:11px 16px;
-            font-size:14px;
-            font-weight:bold;
-            cursor:pointer;
-        }
-
-        .crop-cancel-btn{
-            background:rgba(255,255,255,0.10);
-            color:#fff;
-        }
-
-        .crop-apply-btn{
-            background:#a9d466;
-            color:#163328;
-        }
-
-        @media (max-width: 950px){
-            .page-grid{
-                grid-template-columns:1fr;
-            }
-        }
-
-        @media (max-width: 900px){
-            .admin-wrapper{
-                flex-direction:column;
-            }
-
-            .sidebar{
-                width:100%;
-                height:auto;
-                position:relative;
-            }
-
-            .main-content{
-                margin-left:0;
-            }
-
-            .card,
-            .profile-panel-card{
-                max-width:100%;
-            }
-
-            .top-header{
-                font-size:20px;
-            }
-
-            .sub-header{
-                font-size:17px;
-            }
-
-            .top-actions{
-                justify-content:stretch;
-            }
-
-            .darkmode-toggle{
-                width:100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Change Password</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+body.light-mode {
+    background: #f4f7fb;
+    color: #102a33;
+}
+
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 285px;
+    height: 100vh;
+    padding: 16px;
+    background:
+        radial-gradient(circle at top left, rgba(32, 220, 126, 0.20), transparent 34%),
+        linear-gradient(180deg, #063946 0%, #03313c 52%, #021f29 100%);
+    color: #fff;
+    z-index: 1000;
+    overflow-y: auto;
+    box-shadow: 18px 0 45px rgba(0,0,0,0.24);
+    border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+.sidebar-shell {
+    min-height: calc(100vh - 32px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 22px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.035);
+}
+
+.brand-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #13cf74, #8fbc67);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    box-shadow: 0 10px 20px rgba(18,201,107,0.28);
+}
+
+.brand-text {
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: .4px;
+}
+
+.profile-box {
+    margin-top: 14px;
+    padding: 24px 16px 20px;
+    border-radius: 20px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 18px 35px rgba(0,0,0,0.22);
+}
+
+.profile-icon-wrap {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 12px;
+    padding: 4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffffff, #18d675);
+    position: relative;
+}
+
+.profile-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    object-fit: cover;
+    background: #fff;
+}
+
+.online-dot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    right: 7px;
+    bottom: 8px;
+    background: #2edb79;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+}
+
+.profile-box h3 {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.profile-box p {
+    color: #23e986;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(46,219,121,0.75);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    background: rgba(18,201,107,0.16);
+}
+
+.menu-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 6px 12px;
+    color: #9fbfc5;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.menu-label::before,
+.menu-label::after {
+    content: "";
+    height: 1px;
+    background: rgba(255,255,255,0.13);
+    flex: 1;
+}
+
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.side-btn {
+    width: 100%;
+    border: none;
+    outline: none;
+    text-decoration: none;
+    color: #f5ffff;
+    background: transparent;
+    padding: 13px 14px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14.5px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: .22s ease;
+}
+
+.side-btn:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateX(4px);
+}
+
+.side-btn.active {
+    background: linear-gradient(135deg, #18cf74, #8fbc67);
+    box-shadow: 0 12px 24px rgba(18,201,107,0.28);
+}
+
+.side-icon {
+    width: 26px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.side-label {
+    flex: 1;
+    text-align: left;
+}
+
+.logout-btn {
+    margin-top: 20px;
+    background: rgba(255, 93, 87, 0.13);
+    color: #ff7474;
+    border: 1px solid rgba(255, 93, 87, 0.22);
+}
+
+.logout-btn:hover {
+    background: rgba(255, 93, 87, 0.24);
+    color: #ffffff;
+}
+
+/* MAIN */
+.main-content {
+    flex: 1;
+    margin-left: 285px;
+    min-width: 0;
+}
+
+.top-hero {
+    background: linear-gradient(135deg, #063946 0%, #8fbc67 100%);
+    padding: 30px 34px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+}
+
+.school-brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.school-logo {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    border: 3px solid rgba(255,255,255,0.78);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+}
+
+.school-brand h1 {
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 900;
+    letter-spacing: .3px;
+}
+
+.school-brand p {
+    margin-top: 6px;
+    font-size: 15px;
+    opacity: .95;
+    font-weight: 700;
+}
+
+.darkmode-toggle {
+    height: 52px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    background: #063946;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.20);
+    transition: .22s ease;
+}
+
+.darkmode-toggle:hover {
+    transform: translateY(-2px);
+}
+
+.content-area {
+    padding: 28px;
+}
+
+.page-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.page-title h2 {
+    font-size: 24px;
+    color: #eafff7;
+    font-weight: 900;
+    margin-bottom: 6px;
+}
+
+.page-title p {
+    color: #9fbfc5;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.page-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.card,
+.profile-panel-card {
+    background: #111827;
+    border: 1px solid #243244;
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: 0 18px 42px rgba(0,0,0,0.22);
+}
+
+.card h2 {
+    font-size: 30px;
+    color: #ffffff;
+    margin-bottom: 8px;
+}
+
+.card-sub {
+    color: #94a3b8;
+    margin-bottom: 22px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.message {
+    margin-bottom: 18px;
+    padding: 14px 18px;
+    border-radius: 14px;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+.message.success {
+    background: rgba(18,201,107,0.12);
+    color: #6ee7b7;
+    border: 1px solid rgba(18,201,107,0.25);
+}
+
+.message.error {
+    background: rgba(239,68,68,0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239,68,68,0.25);
+}
+
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 900;
+    color: #dbeafe;
+    margin-bottom: 8px;
+}
+
+.required {
+    color: #ff5d57;
+}
+
+.input-wrap {
+    position: relative;
+}
+
+.form-group input {
+    width: 100%;
+    height: 56px;
+    padding: 0 80px 0 16px;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    font-size: 15px;
+    outline: none;
+    transition: 0.25s ease;
+    background: #0f172a;
+    color: #f8fafc;
+}
+
+.form-group input:focus {
+    border-color: #13cf74;
+    box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.12);
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    border-radius: 10px;
+    background: #334155;
+    color: #f8fafc;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.save-btn {
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #13cf74, #079564);
+    color: #fff;
+    font-weight: 900;
+    padding: 15px 24px;
+    cursor: pointer;
+    min-width: 200px;
+    font-size: 15px;
+    box-shadow: 0 10px 20px rgba(18,201,107,0.22);
+    transition: .22s ease;
+    margin-top: 6px;
+}
+
+.save-btn:hover {
+    transform: translateY(-2px);
+}
+
+.upload-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.upload-btn {
+    display: inline-block;
+    background: #334155;
+    color: #f8fafc;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.hidden-file {
+    display: none;
+}
+
+.big-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #8fbc67;
+    margin: 0 auto 16px;
+    display: block;
+    background: #fff;
+}
+
+.selected-file {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #cbd5e1;
+    word-break: break-word;
+    min-height: 20px;
+    text-align: center;
+}
+
+.upload-submit-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 14px;
+}
+
+.upload-submit {
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #b6dd72, #8fbc67);
+    color: #163328;
+    font-weight: 900;
+    padding: 12px 18px;
+    cursor: pointer;
+    font-size: 14px;
+    min-width: 140px;
+}
+
+.info-block {
+    margin-top: 18px;
+    text-align: center;
+}
+
+.info-label {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 900;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: 900;
+    color: #f8fafc;
+    word-break: break-word;
+}
+
+/* RIGHT SIDE PASSWORD REQUIREMENTS */
+.helper-box {
+    margin-top: 22px;
+    background: linear-gradient(135deg, #13cf74, #079564);
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 18px;
+    padding: 18px;
+    box-shadow: 0 14px 30px rgba(18,201,107,0.25);
+}
+
+.helper-box h4 {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+.password-side-box ul {
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.password-side-box li {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.password-side-box li::before {
+    content: "○";
+    margin-right: 9px;
+    color: #eafff7;
+    font-weight: 900;
+}
+
+.password-side-box li.valid::before {
+    content: "✓";
+    color: #ffffff;
+}
+
+.password-side-box li.valid {
+    color: #ffffff;
+}
+
+/* LIGHT MODE */
+body.light-mode .content-area {
+    background: #f4f7fb;
+}
+
+body.light-mode .page-title h2 {
+    color: #102a33;
+}
+
+body.light-mode .page-title p {
+    color: #516574;
+}
+
+body.light-mode .card,
+body.light-mode .profile-panel-card {
+    background: #ffffff;
+    border-color: #e5eef3;
+    box-shadow: 0 18px 42px rgba(21,48,66,0.10);
+}
+
+body.light-mode .card h2,
+body.light-mode .info-value {
+    color: #102a33;
+}
+
+body.light-mode .card-sub,
+body.light-mode .info-label,
+body.light-mode .selected-file {
+    color: #516574;
+}
+
+body.light-mode .form-group label {
+    color: #102a33;
+}
+
+body.light-mode .form-group input {
+    background: #ffffff;
+    color: #102a33;
+    border-color: #dfe8ed;
+}
+
+body.light-mode .toggle-password,
+body.light-mode .upload-btn {
+    background: #e5eef3;
+    color: #102a33;
+}
+
+body.light-mode .helper-box {
+    background: linear-gradient(135deg, #13cf74, #8fbc67);
+    border-color: #bbf7d0;
+}
+
+body.light-mode .helper-box h4,
+body.light-mode .password-side-box li {
+    color: #ffffff;
+}
+
+body.light-mode .darkmode-toggle {
+    background: #ffffff;
+    color: #063946;
+}
+
+body.light-mode .message.success {
+    background: #eafaf1;
+    color: #047857;
+    border-color: #bbf7d0;
+}
+
+body.light-mode .message.error {
+    background: #ffeaea;
+    color: #b10000;
+    border-color: #ffb8b8;
+}
+
+/* CROP MODAL */
+.crop-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.crop-modal.show {
+    display: flex;
+}
+
+.crop-modal-box {
+    width: 100%;
+    max-width: 820px;
+    background: #0c3f45;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.30);
+}
+
+.crop-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.crop-modal-title {
+    color: #fff;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.crop-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 32px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.crop-container {
+    width: 100%;
+    max-height: 500px;
+    overflow: hidden;
+    border-radius: 18px;
+    background: #102f34;
+}
+
+.crop-container img {
+    display: block;
+    max-width: 100%;
+}
+
+.crop-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.crop-cancel-btn,
+.crop-apply-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 11px 16px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.crop-cancel-btn {
+    background: rgba(255,255,255,0.10);
+    color: #fff;
+}
+
+.crop-apply-btn {
+    background: #a9d466;
+    color: #163328;
+}
+
+@media (max-width: 950px) {
+    .page-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 800px) {
+    .admin-wrapper {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    .sidebar-shell {
+        min-height: auto;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .top-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .school-brand {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+</style>
 </head>
+
 <body>
 
 <div class="admin-wrapper">
-    <div class="sidebar">
-        <div class="sidebar-top">
-            <div class="brand-mini">
-                <span class="brand-dot"></span>
-                <span class="brand-text">Admin Panel</span>
-            </div>
-
-            <div class="profile-box">
-                <div class="profile-icon-wrap">
-                    <img src="<?php echo $admin_photo; ?>" alt="Admin Profile" class="profile-icon" id="sidebarAdminPhoto" onerror="this.src='../assets/southern.png';">
+    <aside class="sidebar">
+        <div class="sidebar-shell">
+            <div>
+                <div class="brand-mini">
+                    <div class="brand-icon">🎓</div>
+                    <div class="brand-text">ADMIN PANEL</div>
                 </div>
-                <h3>ADMIN</h3>
-                <p><?php echo htmlspecialchars($admin_name); ?></p>
-                <div class="admin-badge">ADMIN PANEL</div>
+
+                <div class="profile-box">
+                    <div class="profile-icon-wrap">
+                        <img src="<?php echo htmlspecialchars($admin_photo); ?>" alt="Admin Profile" class="profile-icon" id="sidebarAdminPhoto" onerror="this.src='../assets/southern.png';">
+                        <span class="online-dot"></span>
+                    </div>
+                    <h3>Admin</h3>
+                    <p><?php echo htmlspecialchars($admin_name); ?></p>
+                    <div class="admin-badge">🛡 ADMIN PANEL</div>
+                </div>
+
+                <div class="menu-label">Main Navigation</div>
+
+                <div class="nav-group">
+                    <a class="side-btn" href="admin.php?view=teachers">
+                        <span class="side-icon">👨‍🏫</span>
+                        <span class="side-label">List of Teachers</span>
+                    </a>
+
+                    <a class="side-btn" href="admin.php?view=students">
+                        <span class="side-icon">👥</span>
+                        <span class="side-label">List of Students</span>
+                    </a>
+
+                    <a class="side-btn" href="recently_deleted.php">
+                        <span class="side-icon">🗑</span>
+                        <span class="side-label">Recently Deleted</span>
+                    </a>
+
+                    <a class="side-btn" href="admin_teacher_album.php">
+                        <span class="side-icon">🖼</span>
+                        <span class="side-label">Teacher Album</span>
+                    </a>
+
+                    <a class="side-btn active" href="admin_change_password.php">
+                        <span class="side-icon">🔑</span>
+                        <span class="side-label">Change Password</span>
+                    </a>
+                </div>
             </div>
 
-            <div class="menu-label">Navigation</div>
+            <a class="side-btn logout-btn" href="../auth/logout.php">
+                <span class="side-icon">🚪</span>
+                <span class="side-label">Log Out</span>
+            </a>
+        </div>
+    </aside>
 
-            <div class="nav-group">
-                <a class="side-btn" href="admin.php?view=students"><span>Dashboard</span></a>
-                <a class="side-btn" href="admin.php?view=teachers"><span>List of Teacher</span></a>
-                <a class="side-btn" href="admin_teacher_album.php"><span>Teacher Album</span></a>
-                <a class="side-btn active" href="admin_change_password.php"><span>Change Password</span></a>
+    <main class="main-content">
+        <div class="top-hero">
+            <div class="school-brand">
+                <img src="../assets/logo2.png" class="school-logo" alt="Logo" onerror="this.style.display='none';">
+                <div>
+                    <h1>SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</h1>
+                    <p>CLEARANCE COLLEGE DEPARTMENT</p>
+                </div>
             </div>
-        </div>
 
-        <div class="sidebar-bottom">
-            <a class="side-btn logout-btn" href="../auth/logout.php"><span>Log Out</span></a>
+            <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">☀️ LIGHT MODE</button>
         </div>
-    </div>
-
-    <div class="main-content">
-        <div class="top-header">SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</div>
-        <div class="sub-header">ADMIN CHANGE PASSWORD</div>
 
         <div class="content-area">
-            <div class="top-actions">
-                <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">🌙 DARK MODE</button>
+            <div class="page-title-row">
+                <div class="page-title">
+                    <h2>ADMIN CHANGE PASSWORD</h2>
+                    <p>Update your admin password and profile photo securely.</p>
+                </div>
             </div>
 
             <?php if (!empty($message)): ?>
@@ -982,7 +1024,7 @@ if (!empty($admin['profile_photo']) && file_exists($upload_dir . $admin['profile
             <div class="page-grid">
                 <div class="card">
                     <h2>Change Your Password</h2>
-                    <div class="card-sub">Enter your current password and set a new one for your admin account.</div>
+                    <div class="card-sub">Enter your current password and set a stronger new password for your admin account.</div>
 
                     <form method="POST">
                         <div class="form-group">
@@ -1022,7 +1064,7 @@ if (!empty($admin['profile_photo']) && file_exists($upload_dir . $admin['profile
                         <input type="file" id="fileInput" name="profile_photo" class="hidden-file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*">
                         <input type="hidden" name="cropped_image" id="croppedImageInput">
 
-                        <img src="<?php echo $admin_photo; ?>" alt="Admin Profile" class="big-photo" id="mainPreviewPhoto" onerror="this.src='../assets/southern.png';">
+                        <img src="<?php echo htmlspecialchars($admin_photo); ?>" alt="Admin Profile" class="big-photo" id="mainPreviewPhoto" onerror="this.src='../assets/southern.png';">
 
                         <div id="selectedFile" class="selected-file">No file selected</div>
 
@@ -1041,14 +1083,19 @@ if (!empty($admin['profile_photo']) && file_exists($upload_dir . $admin['profile
                         <div class="info-value"><?php echo htmlspecialchars($admin_email); ?></div>
                     </div>
 
-                    <div class="helper-box">
-                        <h4>Admin Security Tips</h4>
-                        <p>Use a strong password and update your admin profile photo to keep your account organized and secure.</p>
+                    <div class="helper-box password-side-box">
+                        <h4>🛡 PASSWORD REQUIREMENTS</h4>
+                        <ul>
+                            <li id="sideReqLength">At least 12 characters long</li>
+                            <li id="sideReqUppercase">At least 1 uppercase letter</li>
+                            <li id="sideReqNumber">At least 1 number</li>
+                            <li id="sideReqSpecial">At least 1 special character</li>
+                        </ul>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <div class="crop-modal" id="cropModal">
@@ -1084,31 +1131,27 @@ function togglePassword(inputId, btn) {
 }
 
 function applyDarkModeState() {
-    const isDark = localStorage.getItem('site_darkmode') === 'enabled';
+    const isLight = localStorage.getItem('site_darkmode') === 'disabled';
     const btn = document.getElementById('darkModeToggle');
 
-    if (isDark) {
-        document.body.classList.add('dark-mode');
-        if (btn) {
-            btn.innerHTML = '☀️ LIGHT MODE';
-        }
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        if (btn) btn.innerHTML = '🌙 DARK MODE';
     } else {
-        document.body.classList.remove('dark-mode');
-        if (btn) {
-            btn.innerHTML = '🌙 DARK MODE';
-        }
+        document.body.classList.remove('light-mode');
+        if (btn) btn.innerHTML = '☀️ LIGHT MODE';
     }
 }
 
 function toggleDarkMode() {
-    const isDark = document.body.classList.contains('dark-mode');
+    const isLight = document.body.classList.contains('light-mode');
 
-    if (isDark) {
-        document.body.classList.remove('dark-mode');
-        localStorage.setItem('site_darkmode', 'disabled');
-    } else {
-        document.body.classList.add('dark-mode');
+    if (isLight) {
+        document.body.classList.remove('light-mode');
         localStorage.setItem('site_darkmode', 'enabled');
+    } else {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('site_darkmode', 'disabled');
     }
 
     applyDarkModeState();
@@ -1116,6 +1159,29 @@ function toggleDarkMode() {
 
 document.addEventListener("DOMContentLoaded", function () {
     applyDarkModeState();
+
+    const newPasswordInput = document.getElementById("new_password");
+    const sideReqLength = document.getElementById("sideReqLength");
+    const sideReqUppercase = document.getElementById("sideReqUppercase");
+    const sideReqNumber = document.getElementById("sideReqNumber");
+    const sideReqSpecial = document.getElementById("sideReqSpecial");
+
+    function setRequirementState(element, isValid) {
+        if (element) {
+            element.classList.toggle("valid", isValid);
+        }
+    }
+
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener("input", function () {
+            const value = this.value;
+
+            setRequirementState(sideReqLength, value.length >= 12);
+            setRequirementState(sideReqUppercase, /[A-Z]/.test(value));
+            setRequirementState(sideReqNumber, /[0-9]/.test(value));
+            setRequirementState(sideReqSpecial, /[\W_]/.test(value));
+        });
+    }
 
     const fileInput = document.getElementById("fileInput");
     const selectedFile = document.getElementById("selectedFile");

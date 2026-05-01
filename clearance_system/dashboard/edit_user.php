@@ -15,6 +15,10 @@ $id = intval($_GET['id']);
 $success = "";
 $error = "";
 
+$returnUrl = isset($_GET['return']) && !empty($_GET['return'])
+    ? $_GET['return']
+    : 'admin.php?view=students';
+
 /* GET USER */
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->bind_param("i", $id);
@@ -62,18 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if ($update->execute()) {
-            $success = "User information updated successfully.";
-
-            $refresh = $conn->prepare("SELECT * FROM users WHERE id = ?");
-            $refresh->bind_param("i", $id);
-            $refresh->execute();
-            $user = $refresh->get_result()->fetch_assoc();
-
-            if (!empty($user['profile_photo']) && file_exists("../assets/uploads/profile/" . $user['profile_photo'])) {
-                $profile_photo = "../assets/uploads/profile/" . $user['profile_photo'];
-            } else {
-                $profile_photo = $default_photo;
-            }
+            header("Location: " . $returnUrl);
+            exit;
         } else {
             $error = "Failed to update user.";
         }
@@ -413,7 +407,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h1>Edit User</h1>
                 <p>Update student or teacher information from the admin dashboard</p>
             </div>
-            <a href="admin.php" class="back-btn">← Back to Dashboard</a>
+            <a href="<?php echo htmlspecialchars($returnUrl); ?>" class="back-btn">← Back</a>
         </div>
 
         <div class="edit-body">
@@ -428,7 +422,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="edit-grid">
                 <div class="profile-card">
                     <div class="avatar">
-                        <img src="<?php echo $profile_photo; ?>" alt="Profile Photo" onerror="this.src='../assets/southern.png';">
+                        <img src="<?php echo htmlspecialchars($profile_photo); ?>" alt="Profile Photo" onerror="this.src='../assets/southern.png';">
                     </div>
 
                     <h2><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h2>
@@ -501,7 +495,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="button-row">
-                            <a href="admin.php" class="btn btn-cancel">Cancel</a>
+                            <a href="<?php echo htmlspecialchars($returnUrl); ?>" class="btn btn-cancel">Cancel</a>
                             <button type="submit" class="btn btn-save">Save Changes</button>
                         </div>
                     </form>

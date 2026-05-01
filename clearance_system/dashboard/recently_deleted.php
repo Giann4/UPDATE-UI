@@ -77,723 +77,788 @@ if (!empty($params)) {
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recently Deleted</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, Helvetica, sans-serif;
-        }
-
-        body {
-            background:
-                radial-gradient(circle at top left, rgba(18, 201, 107, 0.08), transparent 28%),
-                radial-gradient(circle at bottom right, rgba(3, 59, 70, 0.10), transparent 30%),
-                #f4f7f8;
-            color: #1b1b1b;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        body.dark-mode {
-            background: #0f172a;
-            color: #e5e7eb;
-        }
-
-        .admin-wrapper {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 235px;
-            height: 100vh;
-            background: linear-gradient(180deg, #063845 0%, #032f39 55%, #022933 100%);
-            color: #fff;
-            padding: 18px 14px;
-            overflow-y: auto;
-            z-index: 1000;
-            box-shadow: 10px 0 28px rgba(0,0,0,0.18);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            border-right: 1px solid rgba(255,255,255,0.06);
-        }
-
-        .sidebar::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(255,255,255,0.18);
-            border-radius: 10px;
-        }
-
-        .sidebar-top {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .brand-mini {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 6px 8px 2px;
-        }
-
-        .brand-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #b8e986, #8fbc67);
-            box-shadow: 0 0 14px rgba(184,233,134,0.45);
-            flex-shrink: 0;
-        }
-
-        .brand-text {
-            font-size: 12px;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-            color: #c7e1e6;
-            font-weight: 800;
-        }
-
-        .profile-box {
-            position: relative;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.10);
-            border-radius: 24px;
-            padding: 20px 14px 18px;
-            text-align: center;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.18);
-            overflow: hidden;
-        }
-
-        .profile-box::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 72px;
-            background: linear-gradient(135deg, rgba(143,188,103,0.35), rgba(118,179,222,0.22));
-        }
-
-        .profile-icon-wrap {
-            position: relative;
-            width: 98px;
-            height: 98px;
-            margin: 8px auto 12px;
-            padding: 4px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #d0f0a9, #8fbc67);
-            box-shadow: 0 10px 18px rgba(0,0,0,0.18);
-            z-index: 2;
-            overflow: hidden;
-        }
-
-        .profile-icon {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            object-fit: cover;
-            display: block;
-            border: 3px solid #fff;
-            background: #ffffff;
-        }
-
-        .profile-box h3 {
-            position: relative;
-            font-size: 26px;
-            font-weight: 800;
-            margin-bottom: 6px;
-            line-height: 1.1;
-            z-index: 2;
-            letter-spacing: 0.5px;
-        }
-
-        .profile-box p {
-            position: relative;
-            font-size: 13px;
-            color: #d9eef2;
-            margin-bottom: 10px;
-            word-break: break-word;
-            line-height: 1.45;
-            z-index: 2;
-        }
-
-        .admin-badge {
-            display: inline-block;
-            padding: 9px 15px;
-            border-radius: 999px;
-            background: linear-gradient(135deg, #10c96b, #2de07f);
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .5px;
-            position: relative;
-            z-index: 2;
-            box-shadow: 0 8px 18px rgba(16, 201, 107, 0.25);
-        }
-
-        .menu-label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #b8d7dd;
-            font-weight: 800;
-            margin: 2px 6px 0;
-        }
-
-        .nav-group {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .side-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            text-align: center;
-            text-decoration: none;
-            background: rgba(255,255,255,0.07);
-            color: #fff;
-            padding: 15px 16px;
-            border-radius: 18px;
-            font-weight: 800;
-            font-size: 15px;
-            transition: all .22s ease;
-            border: 1px solid rgba(255,255,255,0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .side-btn::before {
-            content: "";
-            position: absolute;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 0;
-            background: linear-gradient(180deg, #bfe68f, #8fbc67);
-            transition: width .22s ease;
-            border-radius: 18px;
-        }
-
-        .side-btn span {
-            position: relative;
-            z-index: 2;
-        }
-
-        .side-btn:hover {
-            transform: translateX(6px);
-            background: rgba(255,255,255,0.14);
-        }
-
-        .side-btn:hover::before {
-            width: 4px;
-        }
-
-        .side-btn.active {
-            background: linear-gradient(135deg, #18c96d, #36df84);
-            color: #ffffff;
-            border: none;
-            box-shadow: 0 8px 18px rgba(16, 201, 107, 0.20);
-        }
-
-        .side-btn.active::before {
-            width: 5px;
-            background: linear-gradient(180deg, #ffffff, #eaf7ff);
-        }
-
-        .sidebar-bottom {
-            margin-top: 18px;
-        }
-
-        .logout-btn:hover {
-            background: #d94c4c !important;
-        }
-
-        .main-content {
-            flex: 1;
-            margin-left: 235px;
-            min-width: 0;
-        }
-
-        .top-header {
-            background: linear-gradient(135deg, #98c76b, #85b95d);
-            color: #111;
-            text-align: center;
-            padding: 24px 20px;
-            font-size: 25px;
-            font-weight: 900;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        .sub-header {
-            background: #033b46;
-            color: #00ff8c;
-            text-align: center;
-            padding: 14px 20px;
-            font-size: 21px;
-            font-weight: 900;
-            transition: background 0.25s ease, color 0.25s ease;
-        }
-
-        body.dark-mode .top-header {
-            background: #6f9f4f;
-            color: #f8fafc;
-        }
-
-        body.dark-mode .sub-header {
-            background: #022c3a;
-            color: #6fffc0;
-        }
-
-        .content-area {
-            padding: 28px 24px;
-        }
-
-        .top-tools {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 18px;
-        }
-
-        .search-bar-wrap {
-            flex: 1;
-            min-width: 280px;
-        }
-
-        .search-bar-wrap input {
-            width: 100%;
-            max-width: 520px;
-            height: 54px;
-            border: 2px solid #d6dee2;
-            border-radius: 16px;
-            padding: 0 18px;
-            font-size: 15px;
-            outline: none;
-            background: #fff;
-            color: #1b1b1b;
-            transition: 0.25s ease;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.04);
-        }
-
-        .search-bar-wrap input:focus {
-            border-color: #12c96b;
-            box-shadow: 0 0 0 4px rgba(18, 201, 107, 0.12);
-        }
-
-        body.dark-mode .search-bar-wrap input {
-            background: #111827;
-            color: #f8fafc;
-            border-color: #334155;
-            box-shadow: 0 8px 18px rgba(0,0,0,0.18);
-        }
-
-        body.dark-mode .search-bar-wrap input::placeholder {
-            color: #94a3b8;
-        }
-
-        .role-filter-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-
-        .filter-btn {
-            text-decoration: none;
-            padding: 12px 18px;
-            border-radius: 14px;
-            background: #e9eff1;
-            color: #12353b;
-            font-size: 14px;
-            font-weight: 800;
-            transition: 0.25s ease;
-            border: 2px solid transparent;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 95px;
-        }
-
-        .filter-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-        }
-
-        .filter-btn.active {
-            background: linear-gradient(135deg, #18c96d, #36df84);
-            color: #fff;
-            box-shadow: 0 8px 18px rgba(16, 201, 107, 0.18);
-        }
-
-        body.dark-mode .filter-btn {
-            background: #1f2937;
-            color: #f8fafc;
-            border-color: #334155;
-        }
-
-        body.dark-mode .filter-btn.active {
-            background: linear-gradient(135deg, #18c96d, #36df84);
-            color: #fff;
-            border-color: transparent;
-        }
-
-        .darkmode-toggle {
-            height: 48px;
-            padding: 0 18px;
-            border: none;
-            border-radius: 14px;
-            background: #1f2937;
-            color: #fff;
-            font-weight: 800;
-            cursor: pointer;
-            transition: 0.25s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 150px;
-            box-shadow: 0 10px 18px rgba(0, 0, 0, 0.18);
-        }
-
-        .darkmode-toggle:hover {
-            transform: translateY(-1px);
-        }
-
-        body.dark-mode .darkmode-toggle {
-            background: #6f9f4f;
-            color: #f8fafc;
-        }
-
-        .table-wrap {
-            width: 100%;
-            overflow-x: auto;
-            background: #fff;
-            border-radius: 22px;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.07);
-            padding: 14px;
-            transition: background 0.25s ease, box-shadow 0.25s ease;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 980px;
-            background: #fff;
-        }
-
-        thead th {
-            background: linear-gradient(135deg, #eaf4eb, #dfeee2);
-            color: #12353b;
-            font-size: 15px;
-            font-weight: 900;
-            padding: 16px 12px;
-            text-align: center;
-            border-bottom: 2px solid #d8e3dd;
-        }
-
-        tbody td {
-            padding: 15px 12px;
-            text-align: center;
-            border-bottom: 1px solid #e8eef0;
-            font-size: 15px;
-            vertical-align: middle;
-            color: #1b1b1b;
-            background: #fff;
-        }
-
-        tbody tr:hover td {
-            background: #f8fcf9;
-        }
-
-        .action-group {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            text-decoration: none;
-            padding: 10px 16px;
-            border-radius: 12px;
-            color: #fff;
-            font-size: 13px;
-            font-weight: 800;
-            transition: 0.25s ease;
-            display: inline-block;
-            min-width: 110px;
-            text-align: center;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
-        }
-
-        .restore-btn {
-            background: #10b981;
-        }
-
-        .permanent-btn {
-            background: #ef4444;
-        }
-
-        .empty-row {
-            text-align: center;
-            font-weight: 700;
-            color: #6b7479;
-            padding: 26px 10px;
-        }
-
-        /* DARK MODE - PAGE DARK, TABLE STAYS WHITE */
-        body.dark-mode .table-wrap {
-            background: #ffffff !important;
-            color: #1b1b1b !important;
-            box-shadow: 0 12px 30px rgba(0,0,0,0.28);
-        }
-
-        body.dark-mode table {
-            background: #ffffff !important;
-        }
-
-        body.dark-mode thead th {
-            background: linear-gradient(135deg, #eaf4eb, #dfeee2) !important;
-            color: #12353b !important;
-            border-bottom-color: #d8e3dd !important;
-        }
-
-        body.dark-mode tbody td {
-            color: #1b1b1b !important;
-            border-bottom: 1px solid #e8eef0 !important;
-            background: #ffffff !important;
-        }
-
-        body.dark-mode tbody tr:hover td {
-            background: #f8fcf9 !important;
-        }
-
-        body.dark-mode .empty-row {
-            color: #6b7479 !important;
-        }
-
-        @media (max-width: 900px) {
-            .sidebar {
-                width: 220px;
-            }
-
-            .main-content {
-                margin-left: 220px;
-            }
-
-            .top-header {
-                font-size: 21px;
-            }
-
-            .sub-header {
-                font-size: 18px;
-            }
-        }
-
-        @media (max-width: 700px) {
-            .admin-wrapper {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                height: auto;
-                position: relative;
-            }
-
-            .main-content {
-                margin-left: 0;
-            }
-
-            .search-bar-wrap input {
-                max-width: 100%;
-            }
-
-            .top-tools {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .role-filter-group {
-                justify-content: flex-start;
-            }
-
-            .darkmode-toggle {
-                min-width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recently Deleted</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+body.light-mode {
+    background: #f4f7fb;
+    color: #102a33;
+}
+
+.admin-wrapper {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR SAME ADMIN UI */
+.sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 285px;
+    height: 100vh;
+    padding: 16px;
+    background:
+        radial-gradient(circle at top left, rgba(32, 220, 126, 0.20), transparent 34%),
+        linear-gradient(180deg, #063946 0%, #03313c 52%, #021f29 100%);
+    color: #fff;
+    z-index: 1000;
+    overflow-y: auto;
+    box-shadow: 18px 0 45px rgba(0,0,0,0.24);
+    border-right: 1px solid rgba(255,255,255,0.12);
+}
+
+.sidebar-shell {
+    min-height: calc(100vh - 32px);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 22px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(255,255,255,0.035);
+}
+
+.brand-mini {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+
+.brand-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #13cf74, #8fbc67);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 21px;
+    box-shadow: 0 10px 20px rgba(18,201,107,0.28);
+}
+
+.brand-text {
+    font-size: 17px;
+    font-weight: 900;
+    letter-spacing: .4px;
+}
+
+.profile-box {
+    margin-top: 14px;
+    padding: 24px 16px 20px;
+    border-radius: 20px;
+    text-align: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.05));
+    border: 1px solid rgba(255,255,255,0.13);
+    box-shadow: 0 18px 35px rgba(0,0,0,0.22);
+}
+
+.profile-icon-wrap {
+    width: 96px;
+    height: 96px;
+    margin: 0 auto 12px;
+    padding: 4px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffffff, #18d675);
+    position: relative;
+}
+
+.profile-icon {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid #ffffff;
+    object-fit: cover;
+    background: #fff;
+}
+
+.online-dot {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    right: 7px;
+    bottom: 8px;
+    background: #2edb79;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+}
+
+.profile-box h3 {
+    font-size: 22px;
+    font-weight: 900;
+    margin-bottom: 5px;
+}
+
+.profile-box p {
+    color: #23e986;
+    font-size: 13px;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(46,219,121,0.75);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 900;
+    background: rgba(18,201,107,0.16);
+}
+
+.menu-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 6px 12px;
+    color: #9fbfc5;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.menu-label::before,
+.menu-label::after {
+    content: "";
+    height: 1px;
+    background: rgba(255,255,255,0.13);
+    flex: 1;
+}
+
+.nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.side-btn {
+    width: 100%;
+    border: none;
+    outline: none;
+    text-decoration: none;
+    color: #f5ffff;
+    background: transparent;
+    padding: 13px 14px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14.5px;
+    font-weight: 900;
+    cursor: pointer;
+    transition: .22s ease;
+}
+
+.side-btn:hover {
+    background: rgba(255,255,255,0.08);
+    transform: translateX(4px);
+}
+
+.side-btn.active {
+    background: linear-gradient(135deg, #18cf74, #8fbc67);
+    box-shadow: 0 12px 24px rgba(18,201,107,0.28);
+}
+
+.side-icon {
+    width: 26px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.side-label {
+    flex: 1;
+    text-align: left;
+}
+
+.logout-btn {
+    margin-top: 20px;
+    background: rgba(255, 93, 87, 0.13);
+    color: #ff7474;
+    border: 1px solid rgba(255, 93, 87, 0.22);
+}
+
+.logout-btn:hover {
+    background: rgba(255, 93, 87, 0.24);
+    color: #ffffff;
+}
+
+/* MAIN */
+.main-content {
+    flex: 1;
+    margin-left: 285px;
+    min-width: 0;
+}
+
+.top-hero {
+    background: linear-gradient(135deg, #063946 0%, #8fbc67 100%);
+    padding: 30px 34px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+}
+
+.school-brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.school-logo {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #fff;
+    border: 3px solid rgba(255,255,255,0.78);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.16);
+}
+
+.school-brand h1 {
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 900;
+    letter-spacing: .3px;
+}
+
+.school-brand p {
+    margin-top: 6px;
+    font-size: 15px;
+    opacity: .95;
+    font-weight: 700;
+}
+
+.darkmode-toggle {
+    height: 52px;
+    padding: 0 24px;
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    background: #063946;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.20);
+    transition: .22s ease;
+}
+
+.darkmode-toggle:hover {
+    transform: translateY(-2px);
+}
+
+.content-area {
+    padding: 28px;
+}
+
+.page-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+    flex-wrap: wrap;
+}
+
+.page-title h2 {
+    font-size: 24px;
+    color: #eafff7;
+    font-weight: 900;
+    margin-bottom: 6px;
+}
+
+.page-title p {
+    color: #9fbfc5;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+body.light-mode .page-title h2 {
+    color: #102a33;
+}
+
+body.light-mode .page-title p {
+    color: #516574;
+}
+
+.filter-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    text-decoration: none;
+    min-width: 95px;
+    height: 48px;
+    padding: 0 18px;
+    border-radius: 14px;
+    background: #111827;
+    color: #e5e7eb;
+    border: 1px solid #243244;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 900;
+    transition: .22s ease;
+}
+
+.filter-btn:hover {
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #13cf74, #079564);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 10px 20px rgba(18,201,107,0.22);
+}
+
+.search-card {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 24px;
+}
+
+.search-card input {
+    width: 100%;
+    height: 58px;
+    border-radius: 16px;
+    border: 1px solid #dfe8ed;
+    background: #ffffff;
+    color: #102a33;
+    padding: 0 20px;
+    font-size: 15px;
+    outline: none;
+    box-shadow: 0 12px 30px rgba(21, 48, 66, 0.08);
+}
+
+.search-card input::placeholder {
+    color: #7b8b97;
+}
+
+.table-card {
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: 0 18px 42px rgba(21, 48, 66, 0.10);
+    border: none;
+}
+
+.table-wrap {
+    overflow-x: auto;
+    border-radius: 16px;
+    border: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 1050px;
+    background: #ffffff;
+}
+
+thead th {
+    background: #eaf5ee;
+    color: #163743;
+    font-size: 13px;
+    font-weight: 900;
+    padding: 17px 14px;
+    text-align: center;
+}
+
+tbody td {
+    padding: 16px 14px;
+    border-top: 1px solid #e9eef2;
+    color: #425768;
+    background: #ffffff;
+    text-align: center;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+tbody tr:hover td {
+    background: #fbfdfc;
+}
+
+.role-badge,
+.course-badge {
+    display: inline-block;
+    min-width: 78px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.role-student,
+.course-badge {
+    background: #dff5e8;
+    color: #0a944d;
+}
+
+.role-teacher {
+    background: #e7f1ff;
+    color: #1769c2;
+}
+
+.action-group {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    min-width: 96px;
+    height: 39px;
+    padding: 0 14px;
+    border-radius: 10px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    transition: .22s ease;
+    color: #fff;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+}
+
+.restore-btn {
+    background: linear-gradient(135deg, #13cf74, #079564);
+}
+
+.permanent-btn {
+    background: linear-gradient(135deg, #ff5d57, #ef4444);
+}
+
+.empty-row {
+    padding: 34px 10px;
+    color: #516574;
+    font-weight: 800;
+}
+
+.table-footer {
+    padding: 15px 6px 0;
+    color: #516574;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* LIGHT MODE */
+body.light-mode .content-area {
+    background: #f4f7fb;
+}
+
+body.light-mode .filter-btn {
+    background: #fff;
+    border-color: #e5eef3;
+    color: #102a33;
+}
+
+body.light-mode .filter-btn.active {
+    background: linear-gradient(135deg, #13cf74, #079564);
+    color: #fff;
+}
+
+body.light-mode .darkmode-toggle {
+    background: #fff;
+    color: #063946;
+}
+
+/* DARK PAGE BUT CLEAN WHITE TABLE */
+body:not(.light-mode) .table-card {
+    background: #ffffff;
+    border: none;
+}
+
+body:not(.light-mode) .table-wrap {
+    border: none;
+}
+
+body:not(.light-mode) table {
+    background: #ffffff;
+}
+
+body:not(.light-mode) thead th {
+    background: #eaf5ee;
+    color: #163743;
+}
+
+body:not(.light-mode) tbody td {
+    background: #ffffff;
+    color: #425768;
+    border-top: 1px solid #e9eef2;
+}
+
+body:not(.light-mode) tbody tr:hover td {
+    background: #fbfdfc;
+}
+
+body:not(.light-mode) .table-footer,
+body:not(.light-mode) .empty-row {
+    color: #516574;
+}
+
+@media (max-width: 800px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+    }
+
+    .sidebar-shell {
+        min-height: auto;
+    }
+
+    .main-content {
+        margin-left: 0;
+    }
+
+    .admin-wrapper {
+        flex-direction: column;
+    }
+
+    .top-hero {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .school-brand {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .filter-btn {
+        flex: 1;
+    }
+}
+</style>
 </head>
+
 <body>
 
 <div class="admin-wrapper">
-    <div class="sidebar">
-        <div class="sidebar-top">
-            <div class="brand-mini">
-                <span class="brand-dot"></span>
-                <span class="brand-text">Admin Panel</span>
-            </div>
-
-            <div class="profile-box">
-                <div class="profile-icon-wrap">
-                    <img src="<?php echo $admin_photo; ?>" alt="Admin Profile" class="profile-icon" onerror="this.src='../assets/southern.png';">
+    <aside class="sidebar">
+        <div class="sidebar-shell">
+            <div>
+                <div class="brand-mini">
+                    <div class="brand-icon">🎓</div>
+                    <div class="brand-text">ADMIN PANEL</div>
                 </div>
-                <h3>ADMIN</h3>
-                <p><?php echo htmlspecialchars($adminName); ?></p>
-                <div class="admin-badge">ADMIN PANEL</div>
+
+                <div class="profile-box">
+                    <div class="profile-icon-wrap">
+                        <img src="<?php echo htmlspecialchars($admin_photo); ?>" alt="Admin Profile" class="profile-icon" onerror="this.src='../assets/southern.png';">
+                        <span class="online-dot"></span>
+                    </div>
+                    <h3>Admin</h3>
+                    <p><?php echo htmlspecialchars($adminName); ?></p>
+                    <div class="admin-badge">🛡 ADMIN PANEL</div>
+                </div>
+
+                <div class="menu-label">Navigation</div>
+
+                <div class="nav-group">
+                    <a class="side-btn" href="admin.php?view=teachers">
+                        <span class="side-icon">👨‍🏫</span>
+                        <span class="side-label">List of Teachers</span>
+                    </a>
+
+                    <a class="side-btn" href="admin.php?view=students">
+                        <span class="side-icon">👥</span>
+                        <span class="side-label">List of Students</span>
+                    </a>
+
+                    <a class="side-btn active" href="recently_deleted.php">
+                        <span class="side-icon">🗑</span>
+                        <span class="side-label">Recently Deleted</span>
+                    </a>
+
+                    <a class="side-btn" href="admin_teacher_album.php">
+                        <span class="side-icon">🖼</span>
+                        <span class="side-label">Teacher Album</span>
+                    </a>
+
+                    <a class="side-btn" href="admin_change_password.php">
+                        <span class="side-icon">🔑</span>
+                        <span class="side-label">Change Password</span>
+                    </a>
+                </div>
             </div>
 
-            <div class="menu-label">Navigation</div>
+            <a class="side-btn logout-btn" href="../auth/logout.php">
+                <span class="side-icon">🚪</span>
+                <span class="side-label">Log Out</span>
+            </a>
+        </div>
+    </aside>
 
-            <div class="nav-group">
-                <a class="side-btn" href="admin.php?view=teachers"><span>List of Teacher</span></a>
-                <a class="side-btn" href="admin.php?view=students"><span>List of Students</span></a>
-                <a class="side-btn active" href="recently_deleted.php"><span>Recently Deleted</span></a>
-                <a class="side-btn" href="admin_teacher_album.php"><span>Teacher Album</span></a>
-                <a class="side-btn" href="admin_change_password.php"><span>Change Password</span></a>
+    <main class="main-content">
+        <div class="top-hero">
+            <div class="school-brand">
+                <img src="../assets/logo2.png" class="school-logo" alt="Logo" onerror="this.style.display='none';">
+                <div>
+                    <h1>SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</h1>
+                    <p>CLEARANCE COLLEGE DEPARTMENT</p>
+                </div>
             </div>
-        </div>
 
-        <div class="sidebar-bottom">
-            <a class="side-btn logout-btn" href="../auth/logout.php"><span>Log Out</span></a>
+            <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">☀️ LIGHT MODE</button>
         </div>
-    </div>
-
-    <div class="main-content">
-        <div class="top-header">SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</div>
-        <div class="sub-header">RECENTLY DELETED USERS</div>
 
         <div class="content-area">
-            <div class="top-tools">
-                <div class="search-bar-wrap">
-                    <input 
-                        type="text" 
-                        id="liveSearch" 
-                        placeholder="Search by name, email, contact, role, course, or ID..."
-                        autocomplete="off"
-                    >
+            <div class="page-title-row">
+                <div class="page-title">
+                    <h2>RECENTLY DELETED USERS</h2>
+                    <p>Manage users that have been deleted from the system. You can restore or permanently delete them.</p>
                 </div>
 
-                <div class="role-filter-group">
+                <div class="filter-group">
                     <a href="recently_deleted.php?role_filter=all" class="filter-btn <?php echo ($roleFilter === 'all') ? 'active' : ''; ?>">ALL</a>
-
-                    <button type="button" class="darkmode-toggle" id="darkModeToggle" onclick="toggleDarkMode()">🌙 DARK MODE</button>
-
                     <a href="recently_deleted.php?role_filter=teacher" class="filter-btn <?php echo ($roleFilter === 'teacher') ? 'active' : ''; ?>">TEACHER</a>
                     <a href="recently_deleted.php?role_filter=student" class="filter-btn <?php echo ($roleFilter === 'student') ? 'active' : ''; ?>">STUDENT</a>
                 </div>
             </div>
 
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>FULL NAME</th>
-                            <th>EMAIL</th>
-                            <th>CONTACT</th>
-                            <th>ROLE</th>
-                            <th>COURSE</th>
-                            <th>DELETED AT</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody id="deletedUsersTable">
-                        <?php if ($deleted_users && $deleted_users->num_rows > 0): ?>
-                            <?php while ($row = $deleted_users->fetch_assoc()): ?>
-                                <?php
-                                    $search_text = strtolower(
-                                        $row['id'] . ' ' .
-                                        $row['lastname'] . ' ' .
-                                        $row['firstname'] . ' ' .
-                                        $row['lastname'] . ', ' . $row['firstname'] . ' ' .
-                                        $row['email'] . ' ' .
-                                        $row['contact_number'] . ' ' .
-                                        $row['role'] . ' ' .
-                                        ($row['course'] ?? '') . ' ' .
-                                        $row['deleted_at']
-                                    );
-                                ?>
-                                <tr class="searchable-row" data-search="<?php echo htmlspecialchars($search_text); ?>">
-                                    <td><?php echo $row['id']; ?></td>
-                                    <td><?php echo htmlspecialchars($row['lastname'] . ', ' . $row['firstname']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
-                                    <td><?php echo strtoupper(htmlspecialchars($row['role'])); ?></td>
-                                    <td><?php echo htmlspecialchars($row['course'] ?? ''); ?></td>
-                                    <td><?php echo htmlspecialchars($row['deleted_at']); ?></td>
-                                    <td>
-                                        <div class="action-group">
-                                            <a href="recently_deleted.php?restore=<?php echo $row['id']; ?>&role_filter=<?php echo urlencode($roleFilter); ?>" class="action-btn restore-btn" onclick="return confirm('Restore this user?')">RESTORE</a>
-                                            <a href="recently_deleted.php?permanent_delete=<?php echo $row['id']; ?>&role_filter=<?php echo urlencode($roleFilter); ?>" class="action-btn permanent-btn" onclick="return confirm('Permanently delete this user?')">DELETE</a>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endwhile; ?>
-                        <?php else: ?>
-                            <tr id="noDataRow">
-                                <td colspan="8" class="empty-row">No recently deleted users found.</td>
-                            </tr>
-                        <?php endif; ?>
+            <div class="search-card">
+                <input 
+                    type="text" 
+                    id="liveSearch" 
+                    placeholder="🔍 Search by name, email, contact, role, course, or ID..."
+                    autocomplete="off"
+                >
+            </div>
 
-                        <tr id="noSearchResultRow" style="display: none;">
-                            <td colspan="8" class="empty-row">No matching users found.</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="table-card">
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>FULL NAME</th>
+                                <th>EMAIL</th>
+                                <th>CONTACT</th>
+                                <th>ROLE</th>
+                                <th>COURSE</th>
+                                <th>DELETED AT</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="deletedUsersTable">
+                            <?php if ($deleted_users && $deleted_users->num_rows > 0): ?>
+                                <?php while ($row = $deleted_users->fetch_assoc()): ?>
+                                    <?php
+                                        $search_text = strtolower(
+                                            $row['id'] . ' ' .
+                                            $row['lastname'] . ' ' .
+                                            $row['firstname'] . ' ' .
+                                            $row['lastname'] . ', ' . $row['firstname'] . ' ' .
+                                            $row['email'] . ' ' .
+                                            $row['contact_number'] . ' ' .
+                                            $row['role'] . ' ' .
+                                            ($row['course'] ?? '') . ' ' .
+                                            $row['deleted_at']
+                                        );
+                                    ?>
+                                    <tr class="searchable-row" data-search="<?php echo htmlspecialchars($search_text); ?>">
+                                        <td><?php echo $row['id']; ?></td>
+                                        <td><?php echo htmlspecialchars($row['lastname'] . ', ' . $row['firstname']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['email']); ?></td>
+                                        <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
+                                        <td>
+                                            <span class="role-badge <?php echo ($row['role'] === 'student') ? 'role-student' : 'role-teacher'; ?>">
+                                                <?php echo strtoupper(htmlspecialchars($row['role'])); ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty($row['course'])): ?>
+                                                <span class="course-badge"><?php echo htmlspecialchars($row['course']); ?></span>
+                                            <?php else: ?>
+                                                -
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($row['deleted_at']); ?></td>
+                                        <td>
+                                            <div class="action-group">
+                                                <a href="recently_deleted.php?restore=<?php echo $row['id']; ?>&role_filter=<?php echo urlencode($roleFilter); ?>" class="action-btn restore-btn" onclick="return confirm('Restore this user?')">RESTORE</a>
+                                                <a href="recently_deleted.php?permanent_delete=<?php echo $row['id']; ?>&role_filter=<?php echo urlencode($roleFilter); ?>" class="action-btn permanent-btn" onclick="return confirm('Permanently delete this user?')">DELETE</a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            <?php else: ?>
+                                <tr id="noDataRow">
+                                    <td colspan="8" class="empty-row">No recently deleted users found.</td>
+                                </tr>
+                            <?php endif; ?>
+
+                            <tr id="noSearchResultRow" style="display: none;">
+                                <td colspan="8" class="empty-row">No matching users found.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="table-footer">
+                    Showing recently deleted users
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 
 <script>
 function applyDarkModeState() {
-    const isDark = localStorage.getItem('site_darkmode') === 'enabled';
+    const isLight = localStorage.getItem('site_darkmode') === 'disabled';
     const btn = document.getElementById('darkModeToggle');
 
-    if (isDark) {
-        document.body.classList.add('dark-mode');
-        if (btn) {
-            btn.innerHTML = '☀️ LIGHT MODE';
-        }
+    if (isLight) {
+        document.body.classList.add('light-mode');
+        if (btn) btn.innerHTML = '🌙 DARK MODE';
     } else {
-        document.body.classList.remove('dark-mode');
-        if (btn) {
-            btn.innerHTML = '🌙 DARK MODE';
-        }
+        document.body.classList.remove('light-mode');
+        if (btn) btn.innerHTML = '☀️ LIGHT MODE';
     }
 }
 
 function toggleDarkMode() {
-    const isDark = document.body.classList.contains('dark-mode');
+    const isLight = document.body.classList.contains('light-mode');
 
-    if (isDark) {
-        document.body.classList.remove('dark-mode');
-        localStorage.setItem('site_darkmode', 'disabled');
-    } else {
-        document.body.classList.add('dark-mode');
+    if (isLight) {
+        document.body.classList.remove('light-mode');
         localStorage.setItem('site_darkmode', 'enabled');
+    } else {
+        document.body.classList.add('light-mode');
+        localStorage.setItem('site_darkmode', 'disabled');
     }
 
     applyDarkModeState();
@@ -805,14 +870,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("liveSearch");
     const rows = document.querySelectorAll(".searchable-row");
     const noSearchResultRow = document.getElementById("noSearchResultRow");
+    const noDataRow = document.getElementById("noDataRow");
 
     if (searchInput) {
-        searchInput.addEventListener("keyup", function () {
+        searchInput.addEventListener("input", function () {
             const value = this.value.toLowerCase().trim();
             let visibleCount = 0;
 
             rows.forEach(function (row) {
-                const searchText = row.getAttribute("data-search");
+                const searchText = row.getAttribute("data-search") || "";
 
                 if (searchText.includes(value)) {
                     row.style.display = "";
@@ -823,7 +889,11 @@ document.addEventListener("DOMContentLoaded", function () {
             });
 
             if (noSearchResultRow) {
-                noSearchResultRow.style.display = visibleCount === 0 ? "" : "none";
+                noSearchResultRow.style.display = (rows.length > 0 && visibleCount === 0) ? "" : "none";
+            }
+
+            if (noDataRow) {
+                noDataRow.style.display = rows.length === 0 ? "" : "none";
             }
         });
     }

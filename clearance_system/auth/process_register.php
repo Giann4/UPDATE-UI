@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 /* KUHANIN ANG MGA INPUT */
 $firstname        = isset($_POST['firstname']) ? trim($_POST['firstname']) : '';
 $lastname         = isset($_POST['lastname']) ? trim($_POST['lastname']) : '';
-$email            = isset($_POST['email']) ? trim($_POST['email']) : '';
+$email            = isset($_POST['email']) ? strtolower(trim($_POST['email'])) : '';
 $contact_number   = isset($_POST['contact_number']) ? trim($_POST['contact_number']) : '';
 $password         = isset($_POST['password']) ? trim($_POST['password']) : '';
 $confirm_password = isset($_POST['confirm_password']) ? trim($_POST['confirm_password']) : '';
@@ -37,19 +37,19 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     exit;
 }
 
+/* SCHOOL EMAIL ONLY VALIDATION */
+if (!preg_match('/^c[0-9]{2}-[0-9]{4}-[0-9]{2}@spist\.edu\.ph$/', $email)) {
+    header("Location: register.php?error=" . urlencode("Invalid school email. Please use your school email we give"));
+    exit;
+}
+
 /* PASSWORD MATCH CHECK */
 if ($password !== $confirm_password) {
     header("Location: register.php?error=" . urlencode("Password and Confirm Password do not match."));
     exit;
 }
 
-/* STRONG PASSWORD VALIDATION
-   REQUIRED:
-   - at least 12 characters
-   - 1 uppercase letter
-   - 1 number
-   - 1 special character
-*/
+/* STRONG PASSWORD VALIDATION */
 if (!preg_match('/^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{12,}$/', $password)) {
     header("Location: register.php?error=" . urlencode("Password must be at least 12 characters long and include 1 uppercase letter, 1 number, and 1 special character."));
     exit;
@@ -91,8 +91,7 @@ $check_stmt->close();
 
 /*
     IMPORTANT:
-    Ito ay naka-md5 para tugma sa current login system mo.
-    Kung md5 din ang gamit ng process_login.php mo, ito ang tama.
+    Ito ay naka-md5 para tugma sa current login system
 */
 $hashed_password = md5($password);
 
