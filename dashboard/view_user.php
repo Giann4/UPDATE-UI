@@ -2,6 +2,11 @@
 session_start();
 include("../config/db.php");
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require "../vendor/autoload.php";
+
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../auth/login.php");
     exit;
@@ -72,6 +77,126 @@ while ($row = $result->fetch_assoc()) {
 }
 
 $full_name = $user['lastname'] . ', ' . $user['firstname'];
+
+$email_message = "";
+$email_message_type = "";
+
+/* SEND RESULT TO EMAIL */
+if (isset($_POST['send_result'])) {
+    $recipient_email = isset($_POST['recipient_email']) ? trim($_POST['recipient_email']) : '';
+
+    if (empty($recipient_email)) {
+        $email_message = "Please enter recipient email.";
+        $email_message_type = "error";
+    } elseif (!filter_var($recipient_email, FILTER_VALIDATE_EMAIL)) {
+        $email_message = "Invalid email address.";
+        $email_message_type = "error";
+    } else {
+
+        /* PALITAN MO ITO NG GMAIL AT APP PASSWORD MO */
+        $sender_email = "markparedes54321@gmail.com";
+        $sender_app_password = "jmhy tbhz wiou mzma";
+
+        $mail = new PHPMailer(true);
+
+        try {
+            $mail->isSMTP();
+            $mail->Host       = "smtp.gmail.com";
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $sender_email;
+            $mail->Password   = $sender_app_password;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port       = 587;
+
+            $mail->setFrom($sender_email, "SPIST Clearance System");
+            $mail->addAddress($recipient_email);
+
+            $mail->isHTML(true);
+            $mail->Subject = "Student Clearance Result - " . $full_name;
+
+            $table_rows = "";
+
+            if (count($rows) > 0) {
+                foreach ($rows as $index => $row) {
+                    $subject = htmlspecialchars($row['subject']);
+                    $instructor = htmlspecialchars($row['instructor_name'] ?: 'N/A');
+                    $comment = htmlspecialchars($row['comment'] ?: '---');
+                    $status = htmlspecialchars($row['result'] ?: 'Pending');
+                    $date_signed = !empty($row['date_signed'])
+                        ? date("F d, Y", strtotime($row['date_signed']))
+                        : 'N/A';
+
+                    $table_rows .= "
+                    <tr>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;'>" . ($index + 1) . "</td>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;'>{$subject}</td>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;'>{$instructor}</td>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;'>{$comment}</td>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;font-weight:bold;'>{$status}</td>
+                        <td style='padding:8px;border:1px solid #ccc;text-align:center;'>{$date_signed}</td>
+                    </tr>";
+                }
+            } else {
+                $table_rows = "
+                <tr>
+                    <td colspan='6' style='padding:12px;border:1px solid #ccc;text-align:center;'>
+                        No reviewed results yet.
+                    </td>
+                </tr>";
+            }
+
+            $student_name = htmlspecialchars($full_name);
+            $student_course = htmlspecialchars($user['course']);
+            $student_email = htmlspecialchars($user['email']);
+            $student_contact = htmlspecialchars($user['contact_number']);
+
+            $mail->Body = "
+            <div style='font-family:Arial, Helvetica, sans-serif;color:#102a33;'>
+                <h2 style='color:#063946;margin-bottom:5px;'>
+                    SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY
+                </h2>
+
+                <h3 style='margin-top:0;color:#0a5c42;'>Student Clearance Result</h3>
+
+                <p><strong>Name:</strong> {$student_name}</p>
+                <p><strong>Course:</strong> {$student_course}</p>
+                <p><strong>Email:</strong> {$student_email}</p>
+                <p><strong>Contact:</strong> {$student_contact}</p>
+
+                <p style='margin-top:18px;'>
+                    Good day. This email contains the student clearance result record from the SPIST Online Clearance Management System.
+                </p>
+
+                <table style='border-collapse:collapse;width:100%;margin-top:15px;'>
+                    <tr style='background:#eaf5ee;color:#163743;'>
+                        <th style='padding:10px;border:1px solid #ccc;'>#</th>
+                        <th style='padding:10px;border:1px solid #ccc;'>Subject</th>
+                        <th style='padding:10px;border:1px solid #ccc;'>Instructor</th>
+                        <th style='padding:10px;border:1px solid #ccc;'>Comment</th>
+                        <th style='padding:10px;border:1px solid #ccc;'>Status</th>
+                        <th style='padding:10px;border:1px solid #ccc;'>Date Signed</th>
+                    </tr>
+                    {$table_rows}
+                </table>
+
+                <br>
+
+                <p style='font-size:13px;color:#516574;'>
+                    This is a system-generated email from SPIST Online Clearance Management System.
+                </p>
+            </div>";
+
+            $mail->send();
+
+            $email_message = "Student clearance result sent successfully.";
+            $email_message_type = "success";
+
+        } catch (Exception $e) {
+            $email_message = "Failed to send email. Please check Gmail App Password or internet connection.";
+            $email_message_type = "error";
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,7 +228,6 @@ body.light-mode {
     min-height: 100vh;
 }
 
-/* SIDEBAR */
 .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
@@ -304,7 +428,6 @@ body.light-mode {
     color: #ffffff;
 }
 
-/* MAIN */
 .main-content {
     flex: 1;
     margin-left: 285px;
@@ -370,6 +493,26 @@ body.light-mode {
 
 .content {
     padding: 28px;
+}
+
+.email-alert {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    font-weight: 900;
+    border-left: 5px solid;
+}
+
+.email-alert.success {
+    background: #dff5e8;
+    color: #0a944d;
+    border-color: #0a944d;
+}
+
+.email-alert.error {
+    background: #ffe2e2;
+    color: #b91c1c;
+    border-color: #b91c1c;
 }
 
 .page-title-row {
@@ -475,11 +618,13 @@ body.light-mode {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+    align-items: center;
 }
 
 .print-btn,
 .download-btn,
-.back-btn {
+.back-btn,
+.send-btn {
     color: #fff;
     border: none;
     padding: 12px 22px;
@@ -507,9 +652,30 @@ body.light-mode {
     background: linear-gradient(135deg, #ff5d57, #ef4444);
 }
 
+.send-btn {
+    background: linear-gradient(135deg, #13cf74, #079564);
+}
+
+.send-email-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.send-email-form input {
+    height: 46px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 12px;
+    min-width: 220px;
+    font-weight: 800;
+    outline: none;
+}
+
 .print-btn:hover,
 .download-btn:hover,
-.back-btn:hover {
+.back-btn:hover,
+.send-btn:hover {
     transform: translateY(-2px);
 }
 
@@ -653,7 +819,6 @@ table tr:hover td {
     display: none;
 }
 
-/* LIGHT MODE */
 body.light-mode .content {
     background: #f4f7fb;
 }
@@ -733,18 +898,20 @@ body.light-mode .darkmode-toggle {
         grid-template-columns: 1fr;
     }
 
-    .action-buttons {
+    .action-buttons,
+    .send-email-form {
         width: 100%;
     }
 
     .print-btn,
     .download-btn,
-    .back-btn {
+    .back-btn,
+    .send-btn,
+    .send-email-form input {
         width: 100%;
     }
 }
 
-/* PRINT */
 @media print {
     @page {
         size: A4 portrait;
@@ -920,7 +1087,12 @@ body.light-mode .darkmode-toggle {
 
                 <div class="profile-box">
                     <div class="profile-icon-wrap">
-                        <img src="<?php echo htmlspecialchars($photo); ?>" alt="Profile" class="profile-icon" onerror="this.src='../assets/southern.png';">
+                        <img 
+                            src="<?php echo htmlspecialchars($photo); ?>" 
+                            alt="Profile" 
+                            class="profile-icon" 
+                            onerror="this.onerror=null;this.src='../assets/southern.png';"
+                        >
                         <span class="online-dot"></span>
                     </div>
                     <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
@@ -953,7 +1125,12 @@ body.light-mode .darkmode-toggle {
     <main class="main-content">
         <div class="top-hero">
             <div class="school-brand">
-                <img src="../assets/logo2.png" class="school-logo" alt="Logo" onerror="this.style.display='none';">
+                <img 
+                    src="../assets/logo2.png" 
+                    class="school-logo" 
+                    alt="Logo" 
+                    onerror="this.onerror=null;this.src='../assets/southern.png';"
+                >
                 <div>
                     <h1>SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</h1>
                     <p>CLEARANCE COLLEGE DEPARTMENT</p>
@@ -964,11 +1141,18 @@ body.light-mode .darkmode-toggle {
         </div>
 
         <div class="content">
+
+            <?php if (!empty($email_message)): ?>
+                <div class="email-alert <?php echo htmlspecialchars($email_message_type); ?>">
+                    <?php echo htmlspecialchars($email_message); ?>
+                </div>
+            <?php endif; ?>
+
             <div class="page-title-row">
                 <div class="page-title">
                     <h2>Admin View - <?php echo htmlspecialchars($user['firstname']); ?> 👋</h2>
                     <p>
-                        This is the copied clearance result view of the selected student. The admin can review, print, and keep a record of the student clearance result.
+                        This is the copied clearance result view of the selected student. The admin can review, print, send to Gmail, and keep a record of the student clearance result.
                     </p>
                 </div>
             </div>
@@ -1016,6 +1200,17 @@ body.light-mode .darkmode-toggle {
 
                     <div class="action-buttons">
                         <a href="<?php echo htmlspecialchars($returnUrl); ?>" class="back-btn">BACK</a>
+
+                        <form method="POST" class="send-email-form">
+                            <input 
+                                type="email" 
+                                name="recipient_email" 
+                                placeholder="Enter Gmail"
+                                required
+                            >
+                            <button type="submit" name="send_result" class="send-btn">SEND GMAIL</button>
+                        </form>
+
                         <button class="download-btn" onclick="downloadAsImage()">DOWNLOAD</button>
                         <button class="print-btn" onclick="window.print()">PRINT</button>
                     </div>
@@ -1109,7 +1304,6 @@ body.light-mode .darkmode-toggle {
     </main>
 </div>
 
-<!-- PRINT-ONLY LAYOUT -->
 <div id="printLayout">
     <div class="print-paper">
         <div class="print-top-mini">

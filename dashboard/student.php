@@ -20,9 +20,22 @@ if (!$user) {
     die("Student not found.");
 }
 
-$photo = "../assets/southern.png";
-if (!empty($user['profile_photo']) && file_exists("../assets/uploads/profile/" . $user['profile_photo'])) {
-    $photo = "../assets/uploads/profile/" . $user['profile_photo'];
+$default_photo = "../assets/southern.png";
+$photo = $default_photo;
+
+if (
+    isset($user['profile_photo']) &&
+    !empty(trim($user['profile_photo']))
+) {
+
+    $uploaded_photo = "../assets/uploads/profile/" . basename($user['profile_photo']);
+
+    if (
+        file_exists($uploaded_photo) &&
+        is_file($uploaded_photo)
+    ) {
+        $photo = $uploaded_photo . "?v=" . time();
+    }
 }
 
 /* TOP HEADER LOGO - PALITAN MO LANG ITO */
@@ -831,7 +844,7 @@ body{
             <div class="welcome-box">
                 <h2>Hi, <?php echo htmlspecialchars($user['firstname']); ?> 👋</h2>
                 <p>
-                    Welcome to your clearance dashboard. Dito mo pwedeng i-request ang subject gamit ang class code at makita ang status ng clearance mo.
+                    Welcome to your clearance dashboard. Here you can request the subject using the class code and see the status of your clearance.
                 </p>
             </div>
 
