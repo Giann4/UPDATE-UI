@@ -2,18 +2,24 @@
 session_start();
 include("../config/db.php");
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher') {
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher' || !isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit;
 }
 
-$teacher_id = $_SESSION['user_id'];
+$teacher_id = intval($_SESSION['user_id']);
 $current_page = basename($_SERVER['PHP_SELF']);
 $message = "";
 $message_type = "";
 
+$default_photo = "../assets/logo2.png";
+
 /* TEACHER INFO */
-$user_stmt = $conn->prepare("SELECT firstname, lastname, email, contact_number, profile_photo FROM users WHERE id = ? AND role = 'teacher'");
+$user_stmt = $conn->prepare("
+    SELECT firstname, lastname, email, contact_number, profile_photo 
+    FROM users 
+    WHERE id = ? AND role = 'teacher'
+");
 $user_stmt->bind_param("i", $teacher_id);
 $user_stmt->execute();
 $user = $user_stmt->get_result()->fetch_assoc();
@@ -22,15 +28,19 @@ if (!$user) {
     die("Teacher not found.");
 }
 
-$photo = "../assets/southern.png";
-if (!empty($user['profile_photo']) && file_exists("../assets/uploads/profile/" . $user['profile_photo'])) {
-    $photo = "../assets/uploads/profile/" . $user['profile_photo'];
+/* SAFE PROFILE PHOTO */
+$photo = $default_photo;
+if (!empty($user['profile_photo'])) {
+    $profile_path = "../assets/uploads/profile/" . $user['profile_photo'];
+    if (file_exists($profile_path)) {
+        $photo = $profile_path;
+    }
 }
 
-/* TOP HEADER LOGO - PALITAN MO LANG ITO */
+/* SAFE TOP HEADER LOGO */
 $top_header_logo = "../assets/logo2.png";
 if (!file_exists($top_header_logo)) {
-    $top_header_logo = "../assets/southern.png";
+    $top_header_logo = $default_photo;
 }
 
 /* RANDOM CLASS CODE FUNCTION */
@@ -47,8 +57,8 @@ function generateClassCode($length = 8) {
 
 /* CREATE CLASS */
 if (isset($_POST['create_class'])) {
-    $subject = trim($_POST['subject']);
-    $course = trim($_POST['course']);
+    $subject = isset($_POST['subject']) ? trim($_POST['subject']) : '';
+    $course = isset($_POST['course']) ? trim($_POST['course']) : '';
 
     if (!empty($subject) && !empty($course)) {
         do {
@@ -57,9 +67,12 @@ if (isset($_POST['create_class'])) {
             $check->bind_param("s", $class_code);
             $check->execute();
             $check_result = $check->get_result();
-        } while ($check_result->num_rows > 0);
+        } while ($check_result && $check_result->num_rows > 0);
 
-        $insert = $conn->prepare("INSERT INTO teacher_classes (teacher_id, subject, course, class_code) VALUES (?, ?, ?, ?)");
+        $insert = $conn->prepare("
+            INSERT INTO teacher_classes (teacher_id, subject, course, class_code) 
+            VALUES (?, ?, ?, ?)
+        ");
         $insert->bind_param("isss", $teacher_id, $subject, $course, $class_code);
 
         if ($insert->execute()) {
@@ -130,10 +143,12 @@ while ($summary = $summary_result->fetch_assoc()) {
 
 <script>
 (function () {
-    const savedTheme = localStorage.getItem("site_theme");
-    if (savedTheme === "dark") {
-        document.documentElement.classList.add("dark-mode");
-    }
+    try {
+        const savedTheme = localStorage.getItem("site_theme");
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark-mode");
+        }
+    } catch (e) {}
 })();
 </script>
 
@@ -879,7 +894,12 @@ body{
 
                 <div class="profile-card">
                     <div class="profile-ring">
-                        <img src="<?php echo htmlspecialchars($photo); ?>" alt="Profile" class="profile-img" onerror="this.src='../assets/southern.png';">
+                        <img 
+                            src="<?php echo htmlspecialchars($photo); ?>" 
+                            alt="Profile" 
+                            class="profile-img"
+                            onerror="this.onerror=null;this.src='<?php echo $default_photo; ?>';"
+                        >
                     </div>
 
                     <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
@@ -917,7 +937,7 @@ body{
                     src="<?php echo htmlspecialchars($top_header_logo); ?>" 
                     alt="School Logo" 
                     class="top-header-logo"
-                    onerror="this.src='../assets/southern.png';"
+                    onerror="this.onerror=null;this.src='<?php echo $default_photo; ?>';"
                 >
 
                 <div>
@@ -926,7 +946,7 @@ body{
                 </div>
             </div>
 
-            <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙 DARK MODE</button>
+            <button type="button" class="theme-toggle-btn" id="themeToggleBtn">🌙 DARK MODE</button>
         </div>
 
         <div class="content">
@@ -999,7 +1019,7 @@ body{
                         <p>Create, manage, and open your class boards to review student clearance requests.</p>
                     </div>
 
-                    <button type="button" class="create-btn" onclick="toggleCreateForm()">+ Create Class</button>
+                    <button type="button" class="create-btn" id="createClassBtn">+ Create Class</button>
                 </div>
 
                 <?php if (count($class_rows) > 0): ?>
@@ -1009,7 +1029,9 @@ body{
                                 <div class="class-top">
                                     <div class="course-pill"><?php echo htmlspecialchars($class['course']); ?></div>
                                     <div class="subject-name"><?php echo htmlspecialchars($class['subject']); ?></div>
-                                    <div class="teacher-name"><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></div>
+                                    <div class="teacher-name">
+                                        <?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?>
+                                    </div>
 
                                     <div class="class-code">
                                         Random Class Code
@@ -1017,7 +1039,9 @@ body{
                                     </div>
                                 </div>
 
-                                <a href="teacher_request.php?class_id=<?php echo intval($class['id']); ?>" class="open-btn">Open Class</a>
+                                <a href="teacher_request.php?class_id=<?php echo intval($class['id']); ?>" class="open-btn">
+                                    Open Class
+                                </a>
                             </div>
                         <?php endforeach; ?>
                     </div>
@@ -1035,6 +1059,8 @@ body{
 <script>
 function toggleCreateForm() {
     const formCard = document.getElementById("createFormCard");
+    if (!formCard) return;
+
     formCard.classList.toggle("show");
 
     if (formCard.classList.contains("show")) {
@@ -1047,26 +1073,38 @@ function toggleCreateForm() {
 
 function applyThemeButton() {
     const btn = document.getElementById("themeToggleBtn");
-    const isDark = document.documentElement.classList.contains("dark-mode");
-
     if (!btn) return;
 
+    const isDark = document.documentElement.classList.contains("dark-mode");
     btn.textContent = isDark ? "☀️ LIGHT MODE" : "🌙 DARK MODE";
 }
 
 function toggleTheme() {
     document.documentElement.classList.toggle("dark-mode");
 
-    if (document.documentElement.classList.contains("dark-mode")) {
-        localStorage.setItem("site_theme", "dark");
-    } else {
-        localStorage.setItem("site_theme", "light");
-    }
+    try {
+        if (document.documentElement.classList.contains("dark-mode")) {
+            localStorage.setItem("site_theme", "dark");
+        } else {
+            localStorage.setItem("site_theme", "light");
+        }
+    } catch (e) {}
 
     applyThemeButton();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    const themeBtn = document.getElementById("themeToggleBtn");
+    const createBtn = document.getElementById("createClassBtn");
+
+    if (themeBtn) {
+        themeBtn.addEventListener("click", toggleTheme);
+    }
+
+    if (createBtn) {
+        createBtn.addEventListener("click", toggleCreateForm);
+    }
+
     applyThemeButton();
 });
 </script>

@@ -2,14 +2,22 @@
 session_start();
 include("../config/db.php");
 
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student' || !isset($_SESSION['user_id'])) {
     header("Location: ../auth/login.php");
     exit;
 }
 
-$student_id = $_SESSION['user_id'];
+$student_id = intval($_SESSION['user_id']);
 $current_page = basename($_SERVER['PHP_SELF']);
 
+$default_photo = "../assets/southern.png";
+$top_logo = "../assets/logo2.png";
+
+if (!file_exists($top_logo)) {
+    $top_logo = $default_photo;
+}
+
+/* GET STUDENT INFO */
 $user_stmt = $conn->prepare("SELECT firstname, lastname, email, course, profile_photo FROM users WHERE id = ? AND role = 'student'");
 $user_stmt->bind_param("i", $student_id);
 $user_stmt->execute();
@@ -19,18 +27,23 @@ if (!$user) {
     die("Student not found.");
 }
 
-$default_photo = "../assets/southern.png";
-$top_logo = "../assets/logo2.png";
-
+/* STUDENT PHOTO */
 $student_photo = $default_photo;
-if (!empty($user['profile_photo']) && file_exists("../assets/uploads/profile/" . $user['profile_photo'])) {
-    $student_photo = "../assets/uploads/profile/" . $user['profile_photo'];
+if (!empty($user['profile_photo'])) {
+    $student_photo_path = "../assets/uploads/profile/" . $user['profile_photo'];
+
+    if (file_exists($student_photo_path)) {
+        $student_photo = $student_photo_path;
+    }
 }
 
+/* GET TEACHERS */
 $teachers = [];
+
 $teacher_query = "SELECT id, teacher_name, teacher_photo, teacher_email, teacher_contact, teacher_department 
                   FROM teacher_album 
                   ORDER BY teacher_name ASC";
+
 $teacher_result = $conn->query($teacher_query);
 
 if ($teacher_result && $teacher_result->num_rows > 0) {
@@ -50,10 +63,12 @@ $total_teachers = count($teachers);
 
 <script>
 (function () {
-    const savedTheme = localStorage.getItem("site_theme");
-    if (savedTheme === "dark") {
-        document.documentElement.classList.add("dark-mode");
-    }
+    try {
+        const savedTheme = localStorage.getItem("site_theme");
+        if (savedTheme === "dark") {
+            document.documentElement.classList.add("dark-mode");
+        }
+    } catch (e) {}
 })();
 </script>
 
@@ -394,18 +409,13 @@ body{
     font-size:15px;
 }
 
-/* STUDENT TEACHER CARD DISPLAY ONLY */
 .teacher-section{
-    background:#ffffff;
+    background:transparent;
     border-radius:0;
     border:none;
     box-shadow:none;
     padding:0;
     min-height:520px;
-}
-
-.dark-mode .teacher-section{
-    background:transparent;
 }
 
 .teacher-grid{
@@ -417,7 +427,7 @@ body{
 
 .teacher-card{
     position:relative;
-    min-height:380px; /* dating 315px / 385px */
+    min-height:380px;
     background:#ffffff;
     border-radius:18px;
     overflow:hidden;
@@ -448,22 +458,6 @@ body{
     clip-path:polygon(0 0,100% 0,100% 70%,0 92%);
 }
 
-.teacher-card:nth-child(2)::before{
-    background:linear-gradient(135deg, #eef9e9 0%, #e5f1ff 100%);
-}
-
-.teacher-card:nth-child(3)::before{
-    background:linear-gradient(135deg, #e8fff5 0%, #e6f4ff 100%);
-}
-
-.teacher-card:nth-child(4)::before{
-    background:linear-gradient(135deg, #f1e9ff 0%, #eef7ff 100%);
-}
-
-.teacher-card:nth-child(5)::before{
-    background:linear-gradient(135deg, #fff0e7 0%, #ffe4dc 100%);
-}
-
 .teacher-photo-wrap{
     width:112px;
     height:112px;
@@ -473,7 +467,7 @@ body{
     border:3px solid #cceec3;
     position:relative;
     z-index:2;
-    margin:25px 0 18px 42px;
+    margin:25px auto 18px;
     box-shadow:0 10px 22px rgba(0,0,0,.18);
 }
 
@@ -554,61 +548,16 @@ body{
 }
 
 .teacher-footer{
-    margin-top:32px;
-    min-height:48px;
+    margin-top:28px;
     display:flex;
-    justify-content:center;
-    align-items:center;
-    position:relative;
-}
-
-.pagination{
-    display:flex;
-    align-items:center;
-    gap:13px;
-    background:#ffffff;
-    border-radius:12px;
-    padding:8px 15px;
-    box-shadow:0 10px 22px rgba(15,23,42,.08);
-}
-
-.dark-mode .pagination{
-    background:#111827;
-    border:1px solid #243244;
-}
-
-.page-arrow{
-    border:none;
-    background:transparent;
-    color:#9badb8;
-    font-size:24px;
-    cursor:pointer;
-    line-height:1;
-}
-
-.page-number{
-    width:32px;
-    height:32px;
-    border-radius:8px;
-    background:linear-gradient(135deg,#17cf75,#12b86b);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:14px;
-    font-weight:900;
-}
-
-.teacher-count{
-    position:absolute;
-    right:0;
+    justify-content:flex-end;
     color:var(--text-soft);
-    font-size:12px;
-    font-weight:700;
+    font-size:13px;
+    font-weight:800;
 }
 
 .empty-box{
-    background:#f8fbfc;
+    background:var(--panel-bg);
     border:1px dashed var(--panel-border);
     border-radius:20px;
     padding:34px;
@@ -674,12 +623,8 @@ body{
     }
 
     .teacher-footer{
-        flex-direction:column;
-        gap:12px;
-    }
-
-    .teacher-count{
-        position:static;
+        justify-content:center;
+        text-align:center;
     }
 }
 </style>
@@ -699,7 +644,12 @@ body{
 
                 <div class="profile-card">
                     <div class="profile-ring">
-                        <img src="<?php echo htmlspecialchars($student_photo); ?>" alt="Student Photo" class="profile-img" onerror="this.src='../assets/southern.png';">
+                        <img 
+                            src="<?php echo htmlspecialchars($student_photo); ?>" 
+                            alt="Student Photo" 
+                            class="profile-img" 
+                            onerror="this.onerror=null; this.src='../assets/southern.png';"
+                        >
                     </div>
 
                     <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
@@ -745,7 +695,12 @@ body{
     <main class="main-content">
         <div class="top-header">
             <div class="top-header-brand">
-                <img src="<?php echo htmlspecialchars($top_logo); ?>" class="top-logo" alt="Logo" onerror="this.src='../assets/southern.png';">
+                <img 
+                    src="<?php echo htmlspecialchars($top_logo); ?>" 
+                    class="top-logo" 
+                    alt="Logo" 
+                    onerror="this.onerror=null; this.src='../assets/southern.png';"
+                >
 
                 <div>
                     <span>SOUTHERN PHILIPPINES INSTITUTE OF SCIENCE AND TECHNOLOGY</span>
@@ -753,7 +708,7 @@ body{
                 </div>
             </div>
 
-            <button type="button" class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙 DARK MODE</button>
+            <button type="button" class="theme-toggle-btn" id="themeToggleBtn">🌙 DARK MODE</button>
         </div>
 
         <div class="content">
@@ -767,10 +722,14 @@ body{
                     <div class="teacher-grid">
                         <?php foreach ($teachers as $teacher): ?>
                             <?php
-                                if (!empty($teacher['teacher_photo']) && file_exists("../assets/uploads/teacher_album/" . $teacher['teacher_photo'])) {
-                                    $teacher_photo = "../assets/uploads/teacher_album/" . $teacher['teacher_photo'];
-                                } else {
-                                    $teacher_photo = "../assets/southern.png";
+                                $teacher_photo = "../assets/southern.png";
+
+                                if (!empty($teacher['teacher_photo'])) {
+                                    $teacher_photo_path = "../assets/uploads/teacher_album/" . $teacher['teacher_photo'];
+
+                                    if (file_exists($teacher_photo_path)) {
+                                        $teacher_photo = $teacher_photo_path;
+                                    }
                                 }
 
                                 $department = !empty($teacher['teacher_department']) ? $teacher['teacher_department'] : 'Department';
@@ -782,7 +741,12 @@ body{
                                 <div class="teacher-dept-badge"><?php echo htmlspecialchars($department); ?></div>
 
                                 <div class="teacher-photo-wrap">
-                                    <img src="<?php echo htmlspecialchars($teacher_photo); ?>" alt="Teacher Photo" class="teacher-photo" onerror="this.src='../assets/southern.png';">
+                                    <img 
+                                        src="<?php echo htmlspecialchars($teacher_photo); ?>" 
+                                        alt="Teacher Photo" 
+                                        class="teacher-photo" 
+                                        onerror="this.onerror=null; this.src='../assets/southern.png';"
+                                    >
                                 </div>
 
                                 <h3><?php echo htmlspecialchars($teacher['teacher_name']); ?></h3>
@@ -799,6 +763,7 @@ body{
                     </div>
 
                     <div class="teacher-footer">
+                        Total Teachers: <?php echo $total_teachers; ?>
                     </div>
                 <?php else: ?>
                     <div class="empty-box">
@@ -814,26 +779,34 @@ body{
 <script>
 function applyThemeButton() {
     const btn = document.getElementById("themeToggleBtn");
-    const isDark = document.documentElement.classList.contains("dark-mode");
 
     if (!btn) return;
 
+    const isDark = document.documentElement.classList.contains("dark-mode");
     btn.textContent = isDark ? "☀️ LIGHT MODE" : "🌙 DARK MODE";
 }
 
 function toggleTheme() {
     document.documentElement.classList.toggle("dark-mode");
 
-    if (document.documentElement.classList.contains("dark-mode")) {
-        localStorage.setItem("site_theme", "dark");
-    } else {
-        localStorage.setItem("site_theme", "light");
-    }
+    try {
+        if (document.documentElement.classList.contains("dark-mode")) {
+            localStorage.setItem("site_theme", "dark");
+        } else {
+            localStorage.setItem("site_theme", "light");
+        }
+    } catch (e) {}
 
     applyThemeButton();
 }
 
 document.addEventListener("DOMContentLoaded", function () {
+    const themeBtn = document.getElementById("themeToggleBtn");
+
+    if (themeBtn) {
+        themeBtn.addEventListener("click", toggleTheme);
+    }
+
     applyThemeButton();
 });
 </script>

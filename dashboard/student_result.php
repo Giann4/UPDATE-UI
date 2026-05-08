@@ -7,31 +7,40 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
     exit;
 }
 
-$student_id = $_SESSION['user_id'];
+$student_id = intval($_SESSION['user_id']);
+
+function safe_image($path, $fallback = "../assets/southern.png") {
+    if (!empty($path) && file_exists($path) && is_file($path)) {
+        return $path;
+    }
+
+    if (!empty($fallback) && file_exists($fallback) && is_file($fallback)) {
+        return $fallback;
+    }
+
+    return "";
+}
 
 $user_stmt = $conn->prepare("SELECT firstname, lastname, email, contact_number, course, profile_photo FROM users WHERE id = ?");
 $user_stmt->bind_param("i", $student_id);
 $user_stmt->execute();
 $user = $user_stmt->get_result()->fetch_assoc();
+$user_stmt->close();
 
 if (!$user) {
     die("Student not found.");
 }
 
-$default_photo = "../assets/southern.png";
+$default_photo = "../assets/logo2.png";
+
 $photo = $default_photo;
-
-if (!empty($user['profile_photo']) && file_exists("../assets/uploads/profile/" . $user['profile_photo'])) {
-    $photo = "../assets/uploads/profile/" . $user['profile_photo'];
+if (!empty($user['profile_photo'])) {
+    $photo = safe_image("../assets/uploads/profile/" . basename($user['profile_photo']), $default_photo);
 }
 
-$left_logo  = "../assets/logo1.png";
-$right_logo = "../assets/logo2.png";
-
-$top_header_logo = "../assets/logo2.png";
-if (!file_exists($top_header_logo)) {
-    $top_header_logo = "../assets/southern.png";
-}
+$left_logo = safe_image("../assets/logo1.png", $default_photo);
+$right_logo = safe_image("../assets/logo2.png", $default_photo);
+$top_header_logo = safe_image("../assets/logo2.png", $default_photo);
 
 $stmt = $conn->prepare("
     SELECT 
@@ -68,6 +77,7 @@ while ($row = $result->fetch_assoc()) {
         $total_incomplete++;
     }
 }
+$stmt->close();
 
 $full_name = $user['lastname'] . ', ' . $user['firstname'];
 $current_page = basename($_SERVER['PHP_SELF']);
@@ -78,6 +88,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Result</title>
+
+<?php if (!empty($default_photo)): ?>
+<link rel="preload" as="image" href="<?php echo htmlspecialchars($default_photo); ?>">
+<?php endif; ?>
+
+<?php if (!empty($top_header_logo)): ?>
+<link rel="preload" as="image" href="<?php echo htmlspecialchars($top_header_logo); ?>">
+<?php endif; ?>
 
 <script>
 (function () {
@@ -131,7 +149,6 @@ body{
     min-height:100vh;
 }
 
-/* SIDEBAR */
 .sidebar{
     position:fixed;
     inset:0 auto 0 0;
@@ -353,7 +370,6 @@ body{
     color:#ffffff !important;
 }
 
-/* MAIN */
 .main-content{
     margin-left:var(--sidebar-width);
     width:calc(100% - var(--sidebar-width));
@@ -917,7 +933,6 @@ body{
     }
 }
 
-/* PRINT */
 @media print{
     @page{
         size:A4 portrait;
@@ -1114,7 +1129,14 @@ body{
 
                 <div class="profile-card">
                     <div class="profile-ring">
-                        <img src="<?php echo htmlspecialchars($photo); ?>" alt="Profile" class="profile-img" onerror="this.src='../assets/southern.png';">
+                        <img 
+                            src="<?php echo htmlspecialchars($photo); ?>" 
+                            alt="Profile" 
+                            class="profile-img"
+                            loading="eager"
+                            decoding="async"
+                            onerror="this.onerror=null;this.src='../assets/southern.png';"
+                        >
                     </div>
                     <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
                     <p><?php echo htmlspecialchars($user['email']); ?></p>
@@ -1162,7 +1184,9 @@ body{
                     src="<?php echo htmlspecialchars($top_header_logo); ?>" 
                     alt="School Logo" 
                     class="top-header-logo"
-                    onerror="this.src='../assets/southern.png';"
+                    loading="eager"
+                    decoding="async"
+                    onerror="this.onerror=null;this.src='../assets/southern.png';"
                 >
 
                 <div>
@@ -1177,21 +1201,13 @@ body{
         <div class="content">
 
             <?php if (isset($_GET['send']) && $_GET['send'] === 'success'): ?>
-                <div class="alert-box alert-success">
-                    ✅ Clearance result has been successfully sent.
-                </div>
+                <div class="alert-box alert-success">✅ Clearance result has been successfully sent.</div>
             <?php elseif (isset($_GET['send']) && $_GET['send'] === 'failed'): ?>
-                <div class="alert-box alert-error">
-                    ❌ Failed to send clearance result. Please check Gmail setup or try again.
-                </div>
+                <div class="alert-box alert-error">❌ Failed to send clearance result. Please check Gmail setup or try again.</div>
             <?php elseif (isset($_GET['send']) && $_GET['send'] === 'invalid'): ?>
-                <div class="alert-box alert-error">
-                    ❌ Invalid recipient email address.
-                </div>
+                <div class="alert-box alert-error">❌ Invalid recipient email address.</div>
             <?php elseif (isset($_GET['send']) && $_GET['send'] === 'empty'): ?>
-                <div class="alert-box alert-error">
-                    ❌ Please enter recipient email address.
-                </div>
+                <div class="alert-box alert-error">❌ Please enter recipient email address.</div>
             <?php endif; ?>
 
             <div class="welcome-box">
@@ -1255,7 +1271,14 @@ body{
                     <div class="inside-doc-header">
                         <div class="inside-doc-header-top">
                             <div class="inside-logo-box">
-                                <img src="<?php echo $left_logo; ?>" alt="Left Logo" class="inside-logo" onerror="this.style.display='none';">
+                                <img 
+                                    src="<?php echo htmlspecialchars($left_logo); ?>" 
+                                    alt="Left Logo" 
+                                    class="inside-logo"
+                                    loading="eager"
+                                    decoding="async"
+                                    onerror="this.onerror=null;this.src='../assets/southern.png';"
+                                >
                             </div>
 
                             <div class="inside-doc-header-text">
@@ -1264,7 +1287,14 @@ body{
                             </div>
 
                             <div class="inside-logo-box">
-                                <img src="<?php echo $right_logo; ?>" alt="Right Logo" class="inside-logo" onerror="this.style.display='none';">
+                                <img 
+                                    src="<?php echo htmlspecialchars($right_logo); ?>" 
+                                    alt="Right Logo" 
+                                    class="inside-logo"
+                                    loading="eager"
+                                    decoding="async"
+                                    onerror="this.onerror=null;this.src='../assets/southern.png';"
+                                >
                             </div>
                         </div>
 
@@ -1372,7 +1402,12 @@ body{
         <div class="print-header">
             <div class="print-header-top">
                 <div class="print-logo-box">
-                    <img src="<?php echo $left_logo; ?>" alt="Left Logo" class="print-logo" onerror="this.style.display='none';">
+                    <img 
+                        src="<?php echo htmlspecialchars($left_logo); ?>" 
+                        alt="Left Logo" 
+                        class="print-logo"
+                        onerror="this.onerror=null;this.src='../assets/southern.png';"
+                    >
                 </div>
 
                 <div class="print-header-text">
@@ -1381,7 +1416,12 @@ body{
                 </div>
 
                 <div class="print-logo-box">
-                    <img src="<?php echo $right_logo; ?>" alt="Right Logo" class="print-logo" onerror="this.style.display='none';">
+                    <img 
+                        src="<?php echo htmlspecialchars($right_logo); ?>" 
+                        alt="Right Logo" 
+                        class="print-logo"
+                        onerror="this.onerror=null;this.src='../assets/southern.png';"
+                    >
                 </div>
             </div>
 
@@ -1464,8 +1504,22 @@ body{
     </div>
 </div>
 
-<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 <script>
+function loadHtml2Canvas(callback) {
+    if (window.html2canvas) {
+        callback();
+        return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "../assets/js/html2canvas.min.js";
+    script.onload = callback;
+    script.onerror = function () {
+        alert("html2canvas file not found. Please put html2canvas.min.js inside assets/js folder.");
+    };
+    document.body.appendChild(script);
+}
+
 function applyThemeButton() {
     const btn = document.getElementById("themeToggleBtn");
     const isDark = document.documentElement.classList.contains("dark-mode");
@@ -1505,174 +1559,176 @@ function confirmSendEmail() {
 }
 
 function downloadAsImage() {
-    const oldTemp = document.getElementById('tempDownloadWrapper');
-    if (oldTemp) {
-        oldTemp.remove();
-    }
+    loadHtml2Canvas(function () {
+        const oldTemp = document.getElementById('tempDownloadWrapper');
+        if (oldTemp) {
+            oldTemp.remove();
+        }
 
-    const tempWrapper = document.createElement('div');
-    tempWrapper.id = 'tempDownloadWrapper';
-    tempWrapper.style.position = 'absolute';
-    tempWrapper.style.left = '-99999px';
-    tempWrapper.style.top = '0';
-    tempWrapper.style.width = '900px';
-    tempWrapper.style.background = '#ffffff';
-    tempWrapper.style.padding = '20px';
-    tempWrapper.style.zIndex = '-1';
+        const tempWrapper = document.createElement('div');
+        tempWrapper.id = 'tempDownloadWrapper';
+        tempWrapper.style.position = 'absolute';
+        tempWrapper.style.left = '-99999px';
+        tempWrapper.style.top = '0';
+        tempWrapper.style.width = '900px';
+        tempWrapper.style.background = '#ffffff';
+        tempWrapper.style.padding = '20px';
+        tempWrapper.style.zIndex = '-1';
 
-    tempWrapper.innerHTML = `
-        <style>
-            .print-paper{
-                width:100%;
-                max-width:760px;
-                margin:0 auto;
-                color:#000;
-                padding:0;
-                background:#fff;
-                font-family:Arial, sans-serif;
-            }
-            .print-top-mini{
-                display:flex;
-                justify-content:space-between;
-                font-size:10px;
-                margin-bottom:10px;
-            }
-            .print-header-top{
-                display:grid;
-                grid-template-columns:90px 1fr 90px;
-                align-items:center;
-                gap:12px;
-                margin-bottom:10px;
-            }
-            .print-logo-box{
-                display:flex;
-                justify-content:center;
-                align-items:center;
-            }
-            .print-logo{
-                width:78px;
-                height:78px;
-                object-fit:contain;
-                display:block;
-            }
-            .print-header-text{
-                text-align:center;
-                line-height:1.15;
-            }
-            .print-header-text h1{
-                font-size:20px;
-                font-weight:900;
-                margin:0 0 6px;
-                text-transform:uppercase;
-                letter-spacing:0.3px;
-            }
-            .print-address{
-                font-size:11px;
-                margin:0;
-                line-height:1.3;
-            }
-            .print-double-line span{
-                display:block;
-                height:3px;
-                background:#2aa66a;
-                margin:3px 0;
-            }
-            .print-subhead-left{
-                margin:12px 0 8px;
-            }
-            .print-subhead-left h3{
-                font-size:14px;
-                margin:0 0 2px;
-                font-weight:800;
-            }
-            .print-subhead-left p{
-                font-size:11px;
-                margin:0;
-            }
-            .print-center-title{
-                text-align:center;
-                margin:8px 0 12px;
-            }
-            .print-center-title h2{
-                font-size:16px;
-                margin:0 0 4px;
-                font-weight:800;
-            }
-            .print-center-title p{
-                margin:0;
-                font-size:11px;
-                line-height:1.4;
-            }
-            .print-info-grid{
-                display:grid;
-                grid-template-columns:1fr 1fr;
-                gap:8px;
-                margin-bottom:12px;
-            }
-            .print-info-box{
-                border:1px solid #000;
-                text-align:center;
-                padding:10px 8px;
-                min-height:54px;
-            }
-            .print-info-box span{
-                display:block;
-                font-size:10px;
-                margin-bottom:4px;
-                color:#444;
-                font-weight:700;
-            }
-            .print-info-box strong{
-                font-size:12px;
-                font-weight:800;
-            }
-            .print-message{
-                text-align:center;
-                font-size:11px;
-                line-height:1.5;
-                margin:10px auto 14px;
-                max-width:92%;
-            }
-            .print-result-table{
-                width:100%;
-                border-collapse:collapse;
-                font-size:10px;
-            }
-            .print-result-table th,
-            .print-result-table td{
-                border:1px solid #000;
-                padding:5px 4px;
-                text-align:center;
-                vertical-align:middle;
-                background:#fff !important;
-                color:#000 !important;
-            }
-            .print-result-table th{
-                font-weight:800;
-                background:#f3f3f3 !important;
-            }
-        </style>
-        ${document.getElementById('printLayout').innerHTML}
-    `;
+        tempWrapper.innerHTML = `
+            <style>
+                .print-paper{
+                    width:100%;
+                    max-width:760px;
+                    margin:0 auto;
+                    color:#000;
+                    padding:0;
+                    background:#fff;
+                    font-family:Arial, sans-serif;
+                }
+                .print-top-mini{
+                    display:flex;
+                    justify-content:space-between;
+                    font-size:10px;
+                    margin-bottom:10px;
+                }
+                .print-header-top{
+                    display:grid;
+                    grid-template-columns:90px 1fr 90px;
+                    align-items:center;
+                    gap:12px;
+                    margin-bottom:10px;
+                }
+                .print-logo-box{
+                    display:flex;
+                    justify-content:center;
+                    align-items:center;
+                }
+                .print-logo{
+                    width:78px;
+                    height:78px;
+                    object-fit:contain;
+                    display:block;
+                }
+                .print-header-text{
+                    text-align:center;
+                    line-height:1.15;
+                }
+                .print-header-text h1{
+                    font-size:20px;
+                    font-weight:900;
+                    margin:0 0 6px;
+                    text-transform:uppercase;
+                    letter-spacing:0.3px;
+                }
+                .print-address{
+                    font-size:11px;
+                    margin:0;
+                    line-height:1.3;
+                }
+                .print-double-line span{
+                    display:block;
+                    height:3px;
+                    background:#2aa66a;
+                    margin:3px 0;
+                }
+                .print-subhead-left{
+                    margin:12px 0 8px;
+                }
+                .print-subhead-left h3{
+                    font-size:14px;
+                    margin:0 0 2px;
+                    font-weight:800;
+                }
+                .print-subhead-left p{
+                    font-size:11px;
+                    margin:0;
+                }
+                .print-center-title{
+                    text-align:center;
+                    margin:8px 0 12px;
+                }
+                .print-center-title h2{
+                    font-size:16px;
+                    margin:0 0 4px;
+                    font-weight:800;
+                }
+                .print-center-title p{
+                    margin:0;
+                    font-size:11px;
+                    line-height:1.4;
+                }
+                .print-info-grid{
+                    display:grid;
+                    grid-template-columns:1fr 1fr;
+                    gap:8px;
+                    margin-bottom:12px;
+                }
+                .print-info-box{
+                    border:1px solid #000;
+                    text-align:center;
+                    padding:10px 8px;
+                    min-height:54px;
+                }
+                .print-info-box span{
+                    display:block;
+                    font-size:10px;
+                    margin-bottom:4px;
+                    color:#444;
+                    font-weight:700;
+                }
+                .print-info-box strong{
+                    font-size:12px;
+                    font-weight:800;
+                }
+                .print-message{
+                    text-align:center;
+                    font-size:11px;
+                    line-height:1.5;
+                    margin:10px auto 14px;
+                    max-width:92%;
+                }
+                .print-result-table{
+                    width:100%;
+                    border-collapse:collapse;
+                    font-size:10px;
+                }
+                .print-result-table th,
+                .print-result-table td{
+                    border:1px solid #000;
+                    padding:5px 4px;
+                    text-align:center;
+                    vertical-align:middle;
+                    background:#fff !important;
+                    color:#000 !important;
+                }
+                .print-result-table th{
+                    font-weight:800;
+                    background:#f3f3f3 !important;
+                }
+            </style>
+            ${document.getElementById('printLayout').innerHTML}
+        `;
 
-    document.body.appendChild(tempWrapper);
+        document.body.appendChild(tempWrapper);
 
-    const target = tempWrapper.querySelector('.print-paper');
+        const target = tempWrapper.querySelector('.print-paper');
 
-    html2canvas(target, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff'
-    }).then(function(canvas) {
-        const link = document.createElement('a');
-        link.download = 'student_clearance_result.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        tempWrapper.remove();
-    }).catch(function(error) {
-        console.error(error);
-        alert('Failed to download image.');
-        tempWrapper.remove();
+        html2canvas(target, {
+            scale: 2,
+            useCORS: true,
+            backgroundColor: '#ffffff'
+        }).then(function(canvas) {
+            const link = document.createElement('a');
+            link.download = 'student_clearance_result.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            tempWrapper.remove();
+        }).catch(function(error) {
+            console.error(error);
+            alert('Failed to download image.');
+            tempWrapper.remove();
+        });
     });
 }
 </script>

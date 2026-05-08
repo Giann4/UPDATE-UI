@@ -7,47 +7,44 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'student') {
     exit;
 }
 
-$student_id = $_SESSION['user_id'];
+$student_id = intval($_SESSION['user_id']);
 $current_page = basename($_SERVER['PHP_SELF']);
 $message = "";
 
+/* STUDENT INFO */
 $user_stmt = $conn->prepare("SELECT firstname, lastname, email, course, profile_photo FROM users WHERE id = ?");
 $user_stmt->bind_param("i", $student_id);
 $user_stmt->execute();
 $user = $user_stmt->get_result()->fetch_assoc();
+$user_stmt->close();
 
 if (!$user) {
     die("Student not found.");
 }
 
-$default_photo = "../assets/southern.png";
+/* PROFILE PHOTO FIX */
+$default_photo = "../assets/logo2.png";
 $photo = $default_photo;
 
-if (
-    isset($user['profile_photo']) &&
-    !empty(trim($user['profile_photo']))
-) {
-
+if (isset($user['profile_photo']) && !empty(trim($user['profile_photo']))) {
     $uploaded_photo = "../assets/uploads/profile/" . basename($user['profile_photo']);
 
-    if (
-        file_exists($uploaded_photo) &&
-        is_file($uploaded_photo)
-    ) {
-        $photo = $uploaded_photo . "?v=" . time();
+    if (file_exists($uploaded_photo) && is_file($uploaded_photo)) {
+        $photo = $uploaded_photo;
     }
 }
 
-/* TOP HEADER LOGO - PALITAN MO LANG ITO */
+/* TOP HEADER LOGO */
 $top_header_logo = "../assets/logo2.png";
-if (!file_exists($top_header_logo)) {
-    $top_header_logo = "../assets/southern.png";
+
+if (!file_exists($top_header_logo) || !is_file($top_header_logo)) {
+    $top_header_logo = $default_photo;
 }
 
 /* SAVE REQUEST */
 if (isset($_POST['submit_request'])) {
-    $subject = trim($_POST['subject']);
-    $class_code = trim($_POST['class_code']);
+    $subject = isset($_POST['subject']) ? trim($_POST['subject']) : '';
+    $class_code = isset($_POST['class_code']) ? trim($_POST['class_code']) : '';
 
     if (!empty($subject) && !empty($class_code)) {
         $check_class = $conn->prepare("SELECT id, subject FROM teacher_classes WHERE class_code = ?");
@@ -57,9 +54,9 @@ if (isset($_POST['submit_request'])) {
 
         if ($class_result->num_rows > 0) {
             $class = $class_result->fetch_assoc();
-            $class_id = $class['id'];
+            $class_id = intval($class['id']);
 
-            if (strtolower($class['subject']) == strtolower($subject)) {
+            if (strtolower($class['subject']) === strtolower($subject)) {
                 $check_existing = $conn->prepare("SELECT id FROM class_requests WHERE student_id = ? AND class_id = ?");
                 $check_existing->bind_param("ii", $student_id, $class_id);
                 $check_existing->execute();
@@ -76,13 +73,19 @@ if (isset($_POST['submit_request'])) {
                     } else {
                         $message = "Failed to submit request.";
                     }
+
+                    $insert->close();
                 }
+
+                $check_existing->close();
             } else {
                 $message = "Subject does not match the class code.";
             }
         } else {
             $message = "Invalid class code.";
         }
+
+        $check_class->close();
     } else {
         $message = "Please fill in all fields.";
     }
@@ -105,6 +108,7 @@ $total_reviewed = 0;
 $total_passed = 0;
 
 $request_rows = [];
+
 while ($row = $requests->fetch_assoc()) {
     $request_rows[] = $row;
 
@@ -120,6 +124,8 @@ while ($row = $requests->fetch_assoc()) {
         $total_passed++;
     }
 }
+
+$stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -127,6 +133,9 @@ while ($row = $requests->fetch_assoc()) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Student Dashboard</title>
+
+<link rel="preload" as="image" href="../assets/southern.png">
+<link rel="preload" as="image" href="<?php echo htmlspecialchars($top_header_logo); ?>">
 
 <script>
 (function () {
@@ -780,10 +789,19 @@ body{
 
                 <div class="profile-card">
                     <div class="profile-ring">
-                        <img src="<?php echo htmlspecialchars($photo); ?>" alt="Profile" class="profile-img" onerror="this.src='../assets/southern.png';">
+                        <img 
+                            src="<?php echo htmlspecialchars($photo); ?>" 
+                            alt="Profile"
+                            class="profile-img"
+                            loading="eager"
+                            decoding="async"
+                            onerror="this.onerror=null;this.src='../assets/southern.png';"
+                        >
                     </div>
+
                     <h3><?php echo htmlspecialchars($user['firstname'] . ' ' . $user['lastname']); ?></h3>
                     <p><?php echo htmlspecialchars($user['email']); ?></p>
+
                     <div class="course-badge">
                         <?php echo !empty($user['course']) ? htmlspecialchars($user['course']) : 'STUDENT'; ?>
                     </div>
@@ -826,9 +844,11 @@ body{
             <div class="top-header-brand">
                 <img 
                     src="<?php echo htmlspecialchars($top_header_logo); ?>" 
-                    alt="School Logo" 
+                    alt="School Logo"
                     class="top-header-logo"
-                    onerror="this.src='../assets/southern.png';"
+                    loading="eager"
+                    decoding="async"
+                    onerror="this.onerror=null;this.src='../assets/southern.png';"
                 >
 
                 <div>
